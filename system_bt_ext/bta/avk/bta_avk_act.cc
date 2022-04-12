@@ -357,8 +357,10 @@ static void bta_avk_rc_msg_cback(uint8_t handle, uint8_t label, uint8_t opcode, 
                 p_buf->msg.vendor.p_vendor_data = p_data_dst;
             else if (opcode == AVRC_OP_PASS_THRU)
                 p_buf->msg.pass.p_pass_data = p_data_dst;
-            /*else if (opcode == AVRC_OP_BROWSE)
-                p_buf->msg.browse.p_browse_data = p_data_dst;*/
+            else if ((opcode == AVRC_OP_BROWSE) && (p_msg->browse.browse_len <= 0)) {
+                BTIF_TRACE_IMP("%s : Opcode AVRC_OP_BROWSE no data", __func__);
+                p_buf->msg.browse.p_browse_data = NULL;
+            }
         }
         if (opcode == AVRC_OP_BROWSE) {
           /* set p_pkt to NULL, so avrc would not free the buffer */
@@ -1260,6 +1262,11 @@ void bta_avk_rc_msg(tBTA_AVK_CB *p_cb, tBTA_AVK_DATA *p_data)
     {
         av.remote_cmd.rc_handle = p_data->rc_msg.handle;
         (*p_cb->p_cback)(evt, &av);
+        if((p_data->rc_msg.opcode == AVRC_OP_BROWSE) &&
+                      (p_data->rc_msg.msg.browse.p_browse_data == NULL)) {
+          APPL_TRACE_DEBUG("%s : AVRC_OP_BROWSE with data NULL skip buffer clear", __func__);
+          return;
+        }
         /* If browsing message, then free the browse message buffer */
         bta_avk_rc_free_browse_msg(p_cb, p_data);
 
