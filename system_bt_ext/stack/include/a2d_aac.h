@@ -41,6 +41,10 @@
 /* AAC media codec capabilitiy len*/
 #define A2D_AAC_INFO_LEN            8
 
+/* PTS Related Masks */
+#define A2D_AAC_IE_OBJ_TYPE_MSK_PTS            0xFE
+#define A2D_AAC_IE_CHANNELS_MSK_PTS            0x0F
+
 /* AAC Codec Specific */
 #define A2D_AAC_IE_OBJ_TYPE_MSK                0xF0    /* b7-b4 Object Type */
 #define A2D_AAC_IE_OBJ_TYPE_MPEG_2_AAC_LC      0x80    /* b7:MPEG-2 AAC LC */
@@ -77,6 +81,7 @@
 
 #define BTIF_AAC_DEFAULT_BIT_RATE 0x000409B6
 
+#define A2D_DRC_TYPE_MSK                       0x01    /* drc type */
 
 #include "a2dp_error_codes.h"
 

@@ -33,6 +33,7 @@
  *  Utility functions to help build and parse AAC Codec Information
  *
  ******************************************************************************/
+#include "osi/include/properties.h"
 
 #include "bt_target.h"
 #include <string.h>
@@ -109,6 +110,8 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
     tA2DP_STATUS status;
     uint8_t   losc;
     uint8_t   media_type;
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    bool pts_status = false;
 
     if( p_ie == NULL || p_info == NULL)
         status = A2DP_INVALID_PARAMS;
@@ -121,17 +124,33 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
             status = A2DP_WRONG_CODEC;
         else
         {
+            property_get("vendor.bt.pts.certification", value, "false");
+            if (!(strcmp(value,"true"))) { pts_status = true; }
+
             p_info++;
             /* obj type */
-            p_ie->object_type = *p_info & A2D_AAC_IE_OBJ_TYPE_MSK; p_info++;
+            if (pts_status) {
+                p_ie->object_type = *p_info & A2D_AAC_IE_OBJ_TYPE_MSK_PTS;
+            } else {
+                p_ie->object_type = *p_info & A2D_AAC_IE_OBJ_TYPE_MSK;
+            }
+            bool drc = *p_info & A2D_DRC_TYPE_MSK;
+            p_info++;
             /* samping freq */
             p_ie->samp_freq     = *p_info; p_info++;
             p_ie->samp_freq = p_ie->samp_freq << 8;
             p_ie->samp_freq |= (*p_info & 0xF0);
+
             /* channels */
-            p_ie->channels = *p_info & A2D_AAC_IE_CHANNELS_MSK; p_info++;
+            if (pts_status) {
+                p_ie->channels = *p_info & A2D_AAC_IE_CHANNELS_MSK_PTS;
+            } else {
+                p_ie->channels = *p_info & A2D_AAC_IE_CHANNELS_MSK;
+            }
+            p_info++;
+
             /* variable bit rate */
-            p_ie->vbr =       *p_info & A2D_AAC_IE_VBR_MSK;
+            p_ie->vbr = *p_info & A2D_AAC_IE_VBR_MSK;
             /* bit rate */
             p_ie->bit_rate = *p_info & 0x7F;p_ie->bit_rate = p_ie->bit_rate << 8; p_info++;
             p_ie->bit_rate |= *p_info;p_ie->bit_rate = p_ie->bit_rate << 8; p_info++;
@@ -146,6 +165,14 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
                     status = A2DP_BAD_SAMP_FREQ;
                 if(A2D_UINT32_BitsSet(p_ie->channels) != A2DP_SET_ONE_BIT)
                     status = A2DP_BAD_CHANNEL;
+                if (drc) {
+                    property_get("vendor.bt.pts.certification_ns_drc", value, "false");
+                    if (!(strcmp(value,"true"))) {
+                        return A2DP_NS_DRC;
+                    } else {
+                        return A2DP_INVALID_DRC;
+                    }
+                }
             }
         }
     }
@@ -161,15 +188,12 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
 ******************************************************************************/
 static uint8_t A2D_UINT32_BitsSet(uint32_t num)
 {
-    uint8_t   count;
-    bool res;
-    if(num == 0)
-        res = A2DP_SET_ZERO_BIT;
-    else
-    {
-        count = (num & (num - 1));
-        res = ((count==0)?A2DP_SET_ONE_BIT:A2DP_SET_MULTL_BIT);
+    if (num == 0)
+        return A2DP_SET_ZERO_BIT;
+    if ((num & (num - 1)) == 0) {
+        return A2DP_SET_ONE_BIT;
+    } else {
+        return A2DP_SET_MULTL_BIT;
     }
-    return res;
 }
 #endif /* A2D_M24_INCLUDED == TRUE */

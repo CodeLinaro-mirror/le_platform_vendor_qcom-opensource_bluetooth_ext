@@ -27,6 +27,7 @@
  *  BTIF.
  *
  ******************************************************************************/
+#include "osi/include/properties.h"
 
 #include "string.h"
 #include "a2dp_api.h"
@@ -1458,6 +1459,37 @@ uint8_t bta_avk_co_audio_getconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type
 }
 
 /*******************************************************************************
+*
+* Function         A2DP_IsPeerCodecValid
+*
+* Description      This function checks if requested codec configuration is
+*                  valid or not
+*
+* Returns          A2DP_SUCCESS if codec config supported, Error code otherwise
+*
+******************************************************************************/
+uint8_t  A2DP_IsPeerCodecValid(tBTA_AVK_CODEC codec_type, uint8_t *p_codec_info) {
+  uint8_t status = A2DP_SUCCESS;
+
+  switch (codec_type) {
+          case A2DP_MEDIA_CT_SBC :
+                  status = bta_avk_sbc_cfg_matches_cap(p_codec_info,
+                  (tA2D_SBC_CIE *)&bta_avk_co_sbc_caps);
+                  break;
+          case A2DP_MEDIA_CT_AAC :
+                  status = bta_avk_aac_cfg_matches_cap(p_codec_info,
+                  (tA2D_AAC_CIE *)&bta_avk_co_aac_caps);
+                  break;
+          case A2DP_MEDIA_CT_NON_A2DP :
+                  status = A2DP_NS_CODEC_TYPE;
+                  break;
+          default :
+                  status = A2DP_BAD_CODEC_TYPE;
+                  break;
+  }
+  return status;
+}
+/*******************************************************************************
  **
  ** Function         bta_avk_co_audio_setconfig
  **
@@ -1485,6 +1517,17 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
             p_codec_info[4], p_codec_info[5], p_codec_info[6]);
     APPL_TRACE_DEBUG("num_protect:0x%02x protect_info:0x%02x%02x%02x",
         num_protect, p_protect_info[0], p_protect_info[1], p_protect_info[2]);
+
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    property_get("vendor.bt.pts.certification", value, "false");
+    if (!(strcmp(value,"true"))) {
+        status = A2DP_IsPeerCodecValid(codec_type, p_codec_info);
+        if (status != A2DP_SUCCESS) {
+            bta_avk_ci_setconfig(hndl, status, category, 0, NULL, FALSE,
+            avdt_handle);
+            return;
+        }
+    }
 
     /* Retrieve the peer info */
     p_peer = bta_avk_co_get_peer(hndl);

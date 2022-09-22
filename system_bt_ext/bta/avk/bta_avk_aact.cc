@@ -2202,10 +2202,18 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 {
     tBTA_AVK_REJECT reject;
     uint8_t   avdt_handle = p_data->ci_setconfig.avdt_handle;
+    uint8_t error;
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    property_get("vendor.bt.pts.certification", value, "false");
+    if (!(strcmp(value,"true"))) {
+        error = p_data->ci_setconfig.err_code;
+    } else {
+        error = AVDT_ERR_UNSUP_CFG;
+    }
 
     bta_avk_adjust_seps_idx(p_scb, avdt_handle);
     APPL_TRACE_DEBUG("bta_avk_setconfig_rej: sep_idx: %d",p_scb->sep_idx);
-    AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, AVDT_ERR_UNSUP_CFG, 0);
+    AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, error, 0);
 
     reject.bd_addr = p_data->str_msg.bd_addr;
     reject.hndl = p_scb->hndl;
