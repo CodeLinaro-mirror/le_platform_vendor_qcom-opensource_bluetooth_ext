@@ -500,8 +500,10 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
         return FALSE;
     if((codec_type == BTA_AVK_CODEC_M24) && (!is_codec_enabled(BTIF_SV_AVK_AA_AAC_INDEX)))
         return FALSE;
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     if((codec_type == BTA_AVK_CODEC_M12) && (!is_codec_enabled(BTIF_SV_AVK_AA_MP3_INDEX)))
         return FALSE;
+#endif/* MP3_DECODER_INCLUDED */
     if(codec_type == A2D_NON_A2DP_MEDIA_CT)
     {
         if ((A2D_VENDOR_CODEC_APTX_CL == get_vendor_specific_codec(p_codec_info)) &&
