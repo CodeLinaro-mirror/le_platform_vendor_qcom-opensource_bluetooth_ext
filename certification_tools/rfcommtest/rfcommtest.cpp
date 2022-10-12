@@ -66,6 +66,10 @@
 #define CASE_RETURN_STR(const) case const: return #const;
 #define DISCONNECT 3
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
 /************************************************************************************
 **  Local type definitions
 ************************************************************************************/
@@ -470,7 +474,7 @@ static int create_cmdjob(char *cmd)
 
     job_cmd = (char*)calloc(1, strlen(cmd)+1); /* freed in job handler */
     if (job_cmd) {
-        strncpy(job_cmd, cmd, sizeof(job_cmd));
+        strlcpy(job_cmd, cmd, sizeof(job_cmd)+1);
         if (pthread_create(&thread_id, NULL,
                            cmdjob_handler, (void*)job_cmd)!=0)
             perror("pthread_create");

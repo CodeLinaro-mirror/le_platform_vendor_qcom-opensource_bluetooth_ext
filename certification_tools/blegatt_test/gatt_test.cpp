@@ -69,6 +69,11 @@
 
 #include <base/bind.h>
 
+#ifdef USE_GLIB
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
+
 using bluetooth::Uuid;
 #define bluetooth_module_t "bluetooth_test"
 
@@ -1752,7 +1757,7 @@ static int create_cmdjob(char *cmd)
     job_cmd = (char*)calloc(1, strlen(cmd)+1); /* freed in job handler */
     memset(job_cmd,0,strlen(cmd)+1);
     if (job_cmd) {
-       strncpy(job_cmd, cmd,(strlen(cmd)));
+       strlcpy(job_cmd, cmd,(strlen(cmd) +1));
        if (pthread_create(&thread_id, NULL, cmdjob_handler, (void *)job_cmd) != 0)
       /*if (pthread_create(&thread_id, NULL,
                        (void*)cmdjob_handler, (void*)job_cmd) !=0)*/
