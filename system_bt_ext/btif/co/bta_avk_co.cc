@@ -1522,8 +1522,13 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
             }
         } else {
             APPL_TRACE_ERROR("bta_av_co_audio_setconfig wrong CP configuration");
-            status = A2DP_BAD_CP_TYPE;
-            category = AVDT_ASC_PROTECT;
+      if (property_get("vendor.bt.pts.certfication_cp_format", value, "false") &&
+         (strcmp(value, "true") == 0)) {
+         status = A2DP_BAD_CP_FORMAT;
+      } else {
+         status = A2DP_BAD_CP_TYPE;
+      }
+       category = AVDT_ASC_PROTECT;
         }
     }
     if (status == A2DP_SUCCESS)
