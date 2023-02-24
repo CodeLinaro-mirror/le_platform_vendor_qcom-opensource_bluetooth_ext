@@ -43,6 +43,8 @@
 #include "btcore/include/module.h"
 #include "btif/include/btif_storage.h"
 
+#define config_free bt_config_free
+
 #if defined(OS_GENERIC)
 static const char *INTEROP_FILE_PATH = "interop_database.conf";
 #else  // !defined(OS_GENERIC)
