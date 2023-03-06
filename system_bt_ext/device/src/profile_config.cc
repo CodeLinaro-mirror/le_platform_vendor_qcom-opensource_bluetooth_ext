@@ -42,6 +42,8 @@
 #include "osi/include/allocator.h"
 #include "btcore/include/module.h"
 
+#define config_free bt_config_free
+
 #if defined(OS_GENERIC)
 static const char *PROFILE_CONF_FILE_PATH = "bt_profile.conf";
 #else  // !defined(OS_GENERIC)
