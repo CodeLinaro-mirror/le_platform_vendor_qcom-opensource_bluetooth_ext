@@ -298,6 +298,8 @@ uint32_t check_haven_license() {
             APPL_TRACE_DEBUG(" %s Socket Error, retrying ",__func__);
             usleep(50*1000);
             ret = verify_haven_license(APTX_FEATRE_ID);
+        } else {
+            break;
         }
     }
 
