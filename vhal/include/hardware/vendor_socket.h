@@ -33,7 +33,13 @@
 #include <hardware/bluetooth.h>
 #include <hardware/bt_sock.h>
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 #define BT_PROFILE_VENDOR_SOCKET_ID "vendorSocket"
 
@@ -82,7 +88,13 @@ typedef struct {
       void *option_value, int *option_len);
 } btvendor_socket_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_VENDOR_SOCKET_H */
 

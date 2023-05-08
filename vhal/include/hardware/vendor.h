@@ -54,7 +54,13 @@
 
 #include <hardware/bluetooth.h>
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 #define BT_PROFILE_VENDOR_ID "vendor"
 #define BT_PROFILE_WIPOWER_VENDOR_ID "wipower"
@@ -197,7 +203,13 @@ typedef struct {
 
 } btvendor_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_VENDOR_H */
 
