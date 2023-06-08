@@ -31,7 +31,13 @@
 #define ANDROID_INCLUDE_BT_VENDOR_AV_H
 #include <hardware/bt_av.h>
 #include "bt_target.h"
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 #if (TWS_ENABLED == TRUE)
 enum {
   BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_TWS = BTAV_A2DP_CODEC_INDEX_SOURCE_MAX,
@@ -42,5 +48,11 @@ enum {
   BTAV_VENDOR_A2DP_CODEC_INDEX_MAX = BTAV_VENDOR_A2DP_CODEC_INDEX_SINK_MAX,
 };
 #endif
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 #endif

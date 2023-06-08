@@ -32,7 +32,13 @@
 
 #define BT_PROFILE_HANDSFREE_CLIENT_VENDOR_ID "handsfree_client_vendor"
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 
 /**
@@ -67,6 +73,12 @@ typedef struct {
    void  (*cleanup_vendor)( void );
 } bthf_client_vendor_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_HF_CLIENT_VENDOR_H */

@@ -55,7 +55,13 @@
 #include "btm_api.h"
 #include "bt_types.h"
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 typedef void (tREMOTE_DEVICE_NAME_CB) (void *p1);
 
@@ -255,6 +261,12 @@ typedef struct {
 
 #endif
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_TESTAPP_H */

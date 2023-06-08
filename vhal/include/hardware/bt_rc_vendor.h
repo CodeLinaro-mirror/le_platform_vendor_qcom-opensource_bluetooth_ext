@@ -33,7 +33,13 @@
 #define BT_PROFILE_AV_RC_VENDOR_ID "avrcp_vendor"
 #define BT_PROFILE_AV_RC_CTRL_VENDOR_ID "avrcp_ctrl_vendor"
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 /* Macros */
 #define BTRC_MAX_ELEM_ATTR_SIZE     8
@@ -430,6 +436,12 @@ typedef struct {
     void (*cleanup_vendor)(void);
 } btrc_ctrl_vendor_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_RC_VENDOR_H */
