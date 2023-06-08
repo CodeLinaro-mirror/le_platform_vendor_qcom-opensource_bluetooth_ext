@@ -34,7 +34,13 @@
 
 #include <hardware/bluetooth.h>
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 /* BA possible states */
 typedef enum {
@@ -89,6 +95,12 @@ typedef struct {
 
 } ba_transmitter_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_AV_H */

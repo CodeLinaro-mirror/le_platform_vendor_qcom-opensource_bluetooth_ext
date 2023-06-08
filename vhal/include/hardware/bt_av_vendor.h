@@ -36,7 +36,13 @@
 #define BT_PROFILE_ADVANCED_AUDIO_SINK_SPLIT_ID "a2dp_sink_split"
 
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 #define A2DP_SINK_ENABLE_SBC_DECODING       0x01
 #define A2DP_SINK_RETREIVE_RTP_HEADER       0x02
@@ -354,6 +360,12 @@ typedef struct {
     /** suspend request to remote   */
     bt_status_t (*suspend_req)(const RawAddress& bd_addr);
 } btav_sink_vendor_interface_t;
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_AV_VENDOR_H */

@@ -32,7 +32,13 @@
 
 #include <hardware/bluetooth.h>
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 #define BT_PROFILE_AV_RC_VENDOR_CTRL_ID "vendor_avrcp_ctrl"
 
@@ -74,6 +80,12 @@ typedef struct {
 
     } btrc_vendor_ctrl_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_VENDOR_RC_H */

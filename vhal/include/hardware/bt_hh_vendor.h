@@ -33,7 +33,13 @@
 #include <hardware/bluetooth.h>
 
 #define BT_PROFILE_HID_VENDOR_ID "hid_vendor"
+#ifdef USE_MUSL
+#ifdef __cplusplus
+extern "C" {
+#endif
+#else
 __BEGIN_DECLS
+#endif
 
 /** Callback to send raw hid data .*/
 typedef void (*btvendor_raw_hid_data_callback)(const RawAddress& bda, uint8_t* rpt,
@@ -79,6 +85,12 @@ typedef struct {
     void  (*cleanup_vendor)( void );
 } bthh_vendor_interface_t;
 
+#ifdef USE_MUSL
+#ifdef __cplusplus
+}
+#endif
+#else
 __END_DECLS
+#endif
 
 #endif /* ANDROID_INCLUDE_BT_HH_VENDOR_H */
