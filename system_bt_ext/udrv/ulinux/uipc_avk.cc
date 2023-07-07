@@ -404,6 +404,7 @@ static void uipc_flush_ch_locked(tUIPC_CH_ID ch_id)
     struct pollfd pfd;
     int ret;
 
+    memset(&pfd, 0x00, sizeof(pfd));
     pfd.events = POLLIN;
     pfd.fd = uipc_avk_main.ch[ch_id].fd;
 
@@ -778,6 +779,7 @@ uint32_t UIPC_AVK_Read(tUIPC_CH_ID ch_id, uint16_t *p_msg_evt, uint8_t *p_buf, u
     int fd = uipc_avk_main.ch[ch_id].fd;
     struct pollfd pfd;
 
+    memset(&pfd, 0x00, sizeof(pfd));
     if (ch_id >= UIPC_CH_NUM)
     {
         BTIF_TRACE_ERROR("UIPC_AVK_Read : invalid ch id %d", ch_id);
