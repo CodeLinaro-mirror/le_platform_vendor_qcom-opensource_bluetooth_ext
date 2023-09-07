@@ -130,7 +130,10 @@ enum {
 
 /* Middle quality quality setting @ 44.1 khz */
 #define DEFAULT_SBC_BITRATE 328
-
+#define BIT_RATE_SBC 328000
+#define BITS_PER_SAMPLE_SBC 16
+#define BIT_RATE_MODE_MAX 2
+#define PEER_MTU_SBC 990
 #ifndef BTIF_A2DP_NON_EDR_MAX_RATE
 #define BTIF_A2DP_NON_EDR_MAX_RATE 229
 #endif
@@ -318,6 +321,10 @@ static void btif_split_recv_ctrl_data(void)
             uint8_t param[MAX_CODEC_CFG_SIZE],idx,bta_hdl,codec_id = 0, vendor_codec_id = 0;
             uint32_t sampling_freq = 0;
             uint8_t len = 0;
+            uint32_t bit_rate = BIT_RATE_SBC;
+            uint8_t bitrate_mode = BIT_RATE_MODE_MAX;
+            uint8_t  bitsPerSample = BITS_PER_SAMPLE_SBC;
+            uint16_t peerMtu = 0;
             memset(param,0,MAX_CODEC_CFG_SIZE);
             codec_id = bta_avk_get_current_codec();
             a2dp_cmd_acknowledge(A2DP_CTRL_ACK_SUCCESS);
@@ -326,21 +333,28 @@ static void btif_split_recv_ctrl_data(void)
             {
                 //audio doesn't need sbc params, can read from header
                 tA2D_SBC_CIE codec_cfg;
-                param[0] = 7;//length
+                param[0] = 13;//length
                 param[1] = 0;//media type: audio
                 param[2] = codec_id;
                 bta_avk_co_audio_get_sbc_config(&codec_cfg);
                 sampling_freq = btif_avk_a2dp_get_sbc_track_frequency(codec_cfg.samp_freq);
                 param[3] = uint8_t(sampling_freq & 0xFF);
                 param[4] = uint8_t(((sampling_freq & 0xFF00) >> 8) & 0xFF);
-                param[5] = uint8_t(((sampling_freq & 0xFF0000) >> 16) & 0xFF);
-                param[6] = uint8_t(((sampling_freq & 0xFF000000) >> 24) & 0xFF);
-                param[7] = btif_avk_a2dp_get_sbc_track_channel_count(codec_cfg.ch_mode);
+                param[5] = btif_avk_a2dp_get_sbc_track_channel_count(codec_cfg.ch_mode);
+                param[6] = uint8_t(bit_rate & 0xFF);
+                param[7] = uint8_t(((bit_rate & 0xFF00) >> 8) & 0xFF);
+                param[8] = uint8_t(((bit_rate & 0xFF0000) >> 16) & 0xFF);
+                param[9] = uint8_t(((bit_rate & 0xFF000000) >> 24) & 0xFF);
+                param[10] = bitrate_mode;
+                peerMtu = PEER_MTU_SBC;
+                param[11] = uint8_t(peerMtu & 0xFF);
+                param[12] = uint8_t(((peerMtu & 0xFF00) >> 8) & 0xFF);
+                param[13] = bitsPerSample;
             }
             else if(codec_id == A2DP_SINK_AUDIO_CODEC_AAC) {
                 tA2D_AAC_CIE aac_cfg;
                 bta_avk_co_audio_get_aac_config(&aac_cfg);
-                A2D_BldAacInfo(AVDT_AVK_MEDIA_AUDIO,&aac_cfg,&param[0]);
+                A2D_PrepareAacInfoForAudioHal(AVDT_AVK_MEDIA_AUDIO,&aac_cfg,&param[0]);
             }
             else if(codec_id == A2D_NON_A2DP_MEDIA_CT) {
                 vendor_codec_id = bta_avk_get_current_vendor_codec();
