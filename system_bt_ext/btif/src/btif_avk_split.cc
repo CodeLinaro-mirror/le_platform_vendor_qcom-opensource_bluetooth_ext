@@ -1530,7 +1530,7 @@ static bool btif_avk_split_state_starting_handler(btif_sm_event_t event, void *p
             uint8_t latency[8];
             memcpy(latency, p_data, 8);
             btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_STARTED);
-            //BTA_AvkSendPedingStartCnf(btif_avk_cb[index].bta_handle);
+            BTA_AvkSendPedingStartCnf(btif_avk_cb[index].bta_handle);
             btif_update_cmd_status(A2DP_AVK_CTRL_SESSION_SETUP_COMPLETE, A2DP_CTRL_ACK_SUCCESS);
             btif_avk_cb[index].delay = 0;
             btif_avk_cb[index].delay = (latency[0] & 0x000000FF) |
