@@ -3255,12 +3255,12 @@ static bt_status_t connect_int(bt_bdaddr_t *bd_addr, uint16_t uuid)
     return BT_STATUS_SUCCESS;
 }
 
-static bt_status_t sink_connect_src(bt_bdaddr_t *bd_addr)
+static bt_status_t sink_connect_src(const bt_bdaddr_t &bd_addr)
 {
     BTIF_TRACE_EVENT("%s", __FUNCTION__);
     CHECK_BTAVK_INIT();
 
-    return btif_queue_connect(UUID_SERVCLASS_AUDIO_SINK, *bd_addr, connect_int, btif_max_avk_clients);
+    return btif_queue_connect(UUID_SERVCLASS_AUDIO_SINK, bd_addr, connect_int, btif_max_avk_clients);
 }
 
 /*******************************************************************************
@@ -3272,7 +3272,7 @@ static bt_status_t sink_connect_src(bt_bdaddr_t *bd_addr)
 ** Returns          bt_status_t
 **
 *******************************************************************************/
-static bt_status_t disconnect(bt_bdaddr_t *bd_addr)
+static bt_status_t disconnect(const bt_bdaddr_t &bd_addr)
 {
     BTIF_TRACE_EVENT("%s", __FUNCTION__);
 
@@ -3280,7 +3280,7 @@ static bt_status_t disconnect(bt_bdaddr_t *bd_addr)
 
     /* Switch to BTIF context */
     return btif_transfer_context(btif_avk_handle_event, BTIF_AVK_DISCONNECT_REQ_EVT,
-                                 (char*)bd_addr, sizeof(bt_bdaddr_t), NULL);
+                                 (char*)&bd_addr, sizeof(bt_bdaddr_t), NULL);
 }
 
 /*******************************************************************************
