@@ -114,7 +114,7 @@ typedef uint8_t tBTA_AVK_HNDL;
 
 #ifndef BTA_AVK_MAX_A2DP_MTU
  /*#define BTA_AVK_MAX_A2DP_MTU     668 //224 (DM5) * 3 - 4(L2CAP header) */
-#define BTA_AVK_MAX_A2DP_MTU     1008
+#define BTA_AVK_MAX_A2DP_MTU     990
 #endif
 
 #ifndef BTA_AVK_MAX_VDP_MTU

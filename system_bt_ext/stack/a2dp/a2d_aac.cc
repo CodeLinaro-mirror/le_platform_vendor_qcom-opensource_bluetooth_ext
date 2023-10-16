@@ -41,6 +41,10 @@
 #include "a2d_aac.h"
 #include "bt_utils.h"
 
+#define BIT_RATE_MODE_MAX 2
+#define BITS_PER_SAMPLE_AAC 16
+#define PEER_MTU_AAC 990
+
 #if (A2D_M24_INCLUDED == TRUE)
 static uint8_t A2D_UINT32_BitsSet(uint32_t num);
 /******************************************************************************
@@ -60,6 +64,9 @@ static uint8_t A2D_UINT32_BitsSet(uint32_t num);
 tA2DP_STATUS A2D_BldAacInfo(uint8_t media_type, tA2D_AAC_CIE *p_ie, uint8_t *p_result)
 {
     tA2DP_STATUS status;
+    uint16_t  peerMtu = 0;
+    uint8_t  bitsPerSample = BITS_PER_SAMPLE_AAC;
+
     if( p_ie == NULL || p_result == NULL ||
         (p_ie->object_type & ~A2D_AAC_IE_OBJ_TYPE_MSK) ||
         (p_ie->samp_freq & ~A2D_AAC_IE_SAMP_FREQ_MSK) ||
@@ -81,11 +88,50 @@ tA2DP_STATUS A2D_BldAacInfo(uint8_t media_type, tA2D_AAC_CIE *p_ie, uint8_t *p_r
         *p_result++ = p_ie->object_type; // object type
 
         *p_result++ = (uint8_t)(p_ie->samp_freq >> 8);
-
         *p_result++ = (p_ie->samp_freq & 0x00F0)|p_ie->channels;
         *p_result++ = p_ie->vbr | ((p_ie->bit_rate >> 16)& 0x007F);
         *p_result++ = (p_ie->bit_rate >> 8)& 0x00FF;
-        *p_result   = p_ie->bit_rate & 0x000000FF;
+        *p_result = p_ie->bit_rate & 0x000000FF;
+    }
+    return status;
+}
+
+tA2DP_STATUS A2D_PrepareAacInfoForAudioHal(uint8_t media_type, tA2D_AAC_CIE *p_ie, uint8_t *p_result)
+{
+    tA2DP_STATUS status;
+    uint16_t  peerMtu = 0;
+    uint8_t  bitsPerSample = BITS_PER_SAMPLE_AAC;
+
+    if( p_ie == NULL || p_result == NULL ||
+        (p_ie->object_type & ~A2D_AAC_IE_OBJ_TYPE_MSK) ||
+        (p_ie->samp_freq & ~A2D_AAC_IE_SAMP_FREQ_MSK) ||
+        (p_ie->channels & ~A2D_AAC_IE_CHANNELS_MSK) ||
+        (p_ie->bit_rate & ~A2D_AAC_IE_BIT_RATE_MSK) ||
+        (p_ie->vbr & ~A2D_AAC_IE_VBR_MSK) )
+    {
+        /* return invalid params if invalid bit is set */
+        status = A2DP_INVALID_PARAMS;
+    }
+    else
+    {
+        status = A2DP_SUCCESS;
+        *p_result++ = A2D_AAC_INFO_LEN + 4;
+        *p_result++ = media_type;
+        *p_result++ = A2D_MEDIA_CT_M24;
+
+        /* Codec information */
+        *p_result++ = p_ie->object_type; // object type
+
+        *p_result++ = (uint8_t)(p_ie->samp_freq >> 8);
+        *p_result++ = (p_ie->samp_freq & 0x00F0)|p_ie->channels;
+        *p_result++ = p_ie->vbr | ((p_ie->bit_rate >> 16)& 0x007F);
+        *p_result++ = (p_ie->bit_rate >> 8)& 0x00FF;
+        *p_result++ = p_ie->bit_rate & 0x000000FF;
+        *p_result++ = BIT_RATE_MODE_MAX;
+        peerMtu = PEER_MTU_AAC;
+        *p_result++ = uint8_t(peerMtu & 0xFF);
+        *p_result++ = uint8_t(((peerMtu & 0xFF00) >> 8) & 0xFF);
+        *p_result = bitsPerSample;
     }
     return status;
 }
