@@ -38,7 +38,7 @@
 #include "bta_api.h"
 #include "btif_avk_api.h"
 #include "audio_a2dp_hw.h"
-#include "bthost_avk_ipc.h"
+//#include "bthost_avk_ipc.h"
 
 /*******************************************************************************
  **  Constants

@@ -26,7 +26,7 @@
  *  Description:   Bluedroid AVK implementation
  *
  *****************************************************************************/
-
+#if 0
 #include <assert.h>
 #include <string.h>
 
@@ -2786,11 +2786,11 @@ static bt_status_t init_sink_vendor(btav_sink_vendor_callbacks_t* callbacks, int
 
     btif_max_avk_clients = max;
 
-    property_get("persist.bluetooth.disabledelayreports", value, "false");
+    osi_property_get("persist.bluetooth.disabledelayreports", value, "false");
     enable_delay_reporting = (strcmp(value, "false") == 0);
-    property_get("persist.bluetooth.disablebrowsing", value, "false");
+    osi_property_get("persist.bluetooth.disablebrowsing", value, "false");
     enable_avrc_browsing = (strcmp(value, "false") == 0);
-    property_get("persist.bluetooth.enable_scmst", value, "false");
+    osi_property_get("persist.bluetooth.enable_scmst", value, "false");
     enable_scmst = (strcmp(value, "true") == 0);
 
     BTIF_TRACE_IMP(" %s enable_delay_reporting = %d, enable_avrc_browsing = %d,"
@@ -3930,3 +3930,4 @@ void btif_avk_pending_suspend_timeout_handler(void* data) {
     btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SPLIT_PENDING_SUSPEND_ALARM_TIMEOUT,
                                (char *)data, sizeof(bt_bdaddr_t), NULL);
 }
+#endif

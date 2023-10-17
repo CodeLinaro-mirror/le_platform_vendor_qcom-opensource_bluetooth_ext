@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 #include "bta_avk_int.h"
 #include "avdt_api.h"
@@ -1647,7 +1647,7 @@ void bta_avk_str_opened (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 
     // This code is used to pass PTS TC for AVDTP ABORT
     char value[PROPERTY_VALUE_MAX] = {0};
-    if ((property_get("bluetooth.pts.force_a2dp_abort", value, "false"))
+    if ((osi_property_get("bluetooth.pts.force_a2dp_abort", value, "false"))
         && (!strcmp(value, "true")))
     {
         APPL_TRACE_ERROR ("%s: Calling AVDT_AbortReq", __func__);
@@ -1786,7 +1786,7 @@ void bta_avk_connect_req (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
     }
 
     char value[PROPERTY_VALUE_MAX] = {0};
-    property_get("vendor.bt.pts.certification", value, "false");
+    osi_property_get("vendor.bt.pts.certification", value, "false");
 
     if(!strcmp(value, "false")){
         if(bta_av_find_lcb(p_scb->peer_addr, BTA_AV_LCB_FIND) != NULL)

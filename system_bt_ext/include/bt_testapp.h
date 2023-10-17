@@ -43,8 +43,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <private/android_filesystem_config.h>
-#include <android/log.h>
+//#include <private/android_filesystem_config.h>
+//#include <android/log.h>
 #include <hardware/bluetooth.h>
 #include "l2c_api.h"
 #include "sdp_api.h"

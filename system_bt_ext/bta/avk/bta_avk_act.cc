@@ -49,7 +49,7 @@
 #include "osi/include/osi.h"
 
 #if (AVRC_CTLR_INCLUDED == TRUE)
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #endif
 #include "bta_ar_int_ext.h"
 
@@ -1129,7 +1129,7 @@ void bta_avk_rc_msg(tBTA_AVK_CB *p_cb, tBTA_AVK_DATA *p_data)
 #if (AVRC_CTLR_INCLUDED == TRUE)
             else if (((p_data->rc_msg.msg.pass.op_id == AVRC_ID_VOL_UP)||
                       (p_data->rc_msg.msg.pass.op_id == AVRC_ID_VOL_DOWN))&&
-                     ((property_get("bluetooth.pts.avrcp_ct.support", value, "false"))&&
+                     ((osi_property_get("bluetooth.pts.avrcp_ct.support", value, "false"))&&
                       (!strcmp(value, "true"))))
             {
                 p_data->rc_msg.msg.hdr.ctype = BTA_AVK_RSP_ACCEPT;
@@ -1696,7 +1696,7 @@ void bta_avk_api_disconnect(tBTA_AVK_DATA *p_data)
 static uint16_t bta_src_time_out() {
   char value[PROPERTY_VALUE_MAX] = {0};
   uint16_t pts_bta_accept_timeout = 5000;
-  property_get("vendor.bt.pts.certification", value, "false");
+  osi_property_get("vendor.bt.pts.certification", value, "false");
   if(!strcmp(value, "true")){
       return pts_bta_accept_timeout; // increase timeout value to pass PTS;
   }
@@ -2197,7 +2197,7 @@ tBTA_AVK_FEAT bta_avk_sink_check_peer_features (uint16_t service_uuid)
             val = SDP_FindProfileVersionInRec(p_rec, UUID_SERVCLASS_AV_REMOTE_CONTROL, &peer_rc_version);
             APPL_TRACE_DEBUG("peer_rc_version for TG 0x%x, profile_found %d", peer_rc_version, val);
 
-            property_get("persist.avrcp.enable.dy_version", dy_version, "false");
+            osi_property_get("persist.avrcp.enable.dy_version", dy_version, "false");
             if (!strncmp("true", dy_version, 4))
                 bta_avk_check_store_avrc_tg_version(p_rec->remote_bd_addr, peer_rc_version);
             if (peer_rc_version >= AVRC_REV_1_3)

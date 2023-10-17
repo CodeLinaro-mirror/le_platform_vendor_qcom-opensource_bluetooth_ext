@@ -256,7 +256,7 @@ uint32_t check_haven_license() {
     uint8_t ret = 0xff;
     uint8_t  retry_count = 0;
     char value[PROPERTY_VALUE_MAX] = {'\0'};
-    property_get("persist.bt.haven_license", value, "true");
+    osi_property_get("persist.bt.haven_license", value, "true");
     APPL_TRACE_DEBUG("%s haven_licensing_property = %s",__func__,value);
     // if propety set to false, always return success (0)
     if(!strcmp(value, "false")) {

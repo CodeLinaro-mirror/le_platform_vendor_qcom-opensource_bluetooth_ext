@@ -33,7 +33,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <dlfcn.h>
 #include <sys/socket.h>
-#include <cutils/sockets.h>
+#include <unistd.h>
 #include <stdint.h>
 #include "osi/include/log.h"
 #include "osi/include/osi.h"
@@ -125,11 +125,11 @@ int local_snoop_socket_create(void) {
     return -1;
   }
 
-  if(socket_local_server_bind(listen_socket_local, LOCAL_SOCKET_NAME,
+  /*if(socket_local_server_bind(listen_socket_local, LOCAL_SOCKET_NAME,
       ANDROID_SOCKET_NAMESPACE_ABSTRACT) < 0) {
     LOG_ERROR("bt_vnd_log: Failed to create Local Socket (%s)", strerror(errno));
     return -1;
-  }
+  }*/
 
   if (listen(listen_socket_local, 1) < 0) {
     LOG_ERROR("bt_vnd_log: Local socket listen failed (%s)", strerror(errno));

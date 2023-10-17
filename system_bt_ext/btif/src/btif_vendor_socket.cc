@@ -43,7 +43,7 @@
 
 #define LOG_TAG "bt_btif_vendor_socket"
 
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #include "btif_common.h"
 #include "btif_sock_rfc.h"
 #include "btif_util.h"

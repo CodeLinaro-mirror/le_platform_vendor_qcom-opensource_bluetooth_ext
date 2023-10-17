@@ -45,7 +45,7 @@
 #include "a2dp_int.h"
 #include "a2d_aptx.h"
 #include "a2d_aptx_hd.h"
-#include <utils/Log.h>
+#include "osi/include/log.h"
 
 
 bool isA2dAptXHdEnabled = FALSE;

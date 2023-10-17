@@ -33,7 +33,7 @@
 #include <hardware/bluetooth.h>
 #include "hardware/bt_av.h"
 #include "osi/include/allocator.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 #define LOG_TAG "bt_btif_avk"
 
@@ -2285,16 +2285,16 @@ static bt_status_t init_sink_vendor(btav_sink_vendor_callbacks_t* callbacks, int
 
     enable_stack_sbc_decoding = streaming_prarm & A2DP_SINK_ENABLE_SBC_DECODING;
     retreive_rtp_header = streaming_prarm & A2DP_SINK_RETREIVE_RTP_HEADER;
-    property_get("persist.bluetooth.disabledelayreports", value, "false");
+    osi_property_get("persist.bluetooth.disabledelayreports", value, "false");
     enable_delay_reporting = (strcmp(value, "false") == 0);
-    property_get("persist.bluetooth.disablebrowsing", value, "false");
+    osi_property_get("persist.bluetooth.disablebrowsing", value, "false");
     enable_avrc_browsing = (strcmp(value, "false") == 0);
-    property_get("persist.bluetooth.enable_scmst", value, "false");
+    osi_property_get("persist.bluetooth.enable_scmst", value, "false");
     enable_scmst = (strcmp(value, "true") == 0);
     enable_notification_cb = streaming_prarm & A2DP_SINK_ENABLE_NOTIFICATION_CB;
     //enable_timestamp is valid only if enable_notification_cb is enabled
     enable_timestamp = streaming_prarm & A2DP_SINK_ENABLE_TIMESTAMP;
-    property_get("vendor.bt.a2dp.whitelist.device", value, "false");
+    osi_property_get("vendor.bt.a2dp.whitelist.device", value, "false");
     is_wl_enabled = (strcmp(value, "true") == 0);
 
     BTIF_TRACE_IMP("%s, enable_sbc_decoding = %d, retreive RTP header = %d"

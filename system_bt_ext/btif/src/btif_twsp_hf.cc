@@ -36,7 +36,7 @@
 #include "btif_hf.h"
 #include "btif_tws_plus.h"
 #include "vendor.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 
 #if (TWS_AG_ENABLED == TRUE)
@@ -65,7 +65,7 @@ int get_idx_primary_eb(RawAddress* bd_addr) {
    static char primary[PROPERTY_VALUE_MAX];
    int val = 0;
    int idx = -1;
-   if (property_get("persist.bt.tws.hf.primary", primary, NULL)) {
+   if (osi_property_get("persist.bt.tws.hf.primary", primary, NULL)) {
       val = atoi(primary);
       BTIF_TRACE_DEBUG("%s: primary eb value : %d", __func__, val);
    }

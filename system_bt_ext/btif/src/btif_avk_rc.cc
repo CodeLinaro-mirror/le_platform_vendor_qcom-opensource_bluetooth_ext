@@ -46,7 +46,6 @@
 #include "hardware/bt_rc_vendor.h"
 #include "osi/include/list.h"
 #include "osi/include/properties.h"
-#include "cutils/properties.h"
 #include "btu.h"
 
 /*****************************************************************************
@@ -2101,7 +2100,7 @@ static bt_status_t init_ctrl_vendor(btrc_ctrl_vendor_callbacks_t* callbacks, int
        btif_avk_rc_cb[i].rc_vol_label=MAX_LABEL;
        btif_avk_rc_cb[i].rc_supported_event_list = list_new(osi_free);
     }
-    property_get("persist.bluetooth.disablebrowsing", value, "false");
+    osi_property_get("persist.bluetooth.disablebrowsing", value, "false");
     enable_avrc_browsing = (strcmp(value, "false") == 0);
     lbl_init();
     return result;

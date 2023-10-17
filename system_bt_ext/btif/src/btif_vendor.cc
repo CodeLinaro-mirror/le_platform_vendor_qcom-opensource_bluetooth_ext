@@ -65,7 +65,7 @@
 
 #define LOG_TAG "bt_btif_vendor"
 
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #include "bt_utils.h"
 #include "btif_common.h"
 #include "btif_util.h"

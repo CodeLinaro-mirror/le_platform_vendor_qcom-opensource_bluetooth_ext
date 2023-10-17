@@ -55,7 +55,7 @@
 #include <hardware/vendor.h>
 #include "utils/Log.h"
 #include "android_runtime/AndroidRuntime.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 
 
 namespace android {

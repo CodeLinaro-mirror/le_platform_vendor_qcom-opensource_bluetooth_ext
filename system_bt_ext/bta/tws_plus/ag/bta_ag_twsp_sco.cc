@@ -54,7 +54,7 @@
 #include "device/include/controller.h"
 #include "bta_ag_twsp.h"
 #include "btm_api.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #include "bta_ag_twsp_dev.h"
 
 #if (TWS_AG_ENABLED == TRUE)

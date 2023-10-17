@@ -44,7 +44,7 @@
 #include "a2dp_api.h"
 #include "a2dp_int.h"
 #include "a2d_aptx_ad_decoder.h"
-#include <utils/Log.h>
+#include "osi/include/log.h"
 
 
 /******************************************************************************
