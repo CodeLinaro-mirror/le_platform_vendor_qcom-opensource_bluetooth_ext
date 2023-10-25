@@ -1917,7 +1917,7 @@ static bool bta_avk_co_audio_supports_config(uint8_t codec_type, const uint8_t *
 #endif
     case A2D_NON_A2DP_MEDIA_CT:
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
-        if (get_vendor_specific_codec(p_codec_cfg) == A2D_VENDOR_CODEC_APTX_CL)
+        if (get_vendor_specific_codec(const_cast<uint8_t *>(p_codec_cfg)) == A2D_VENDOR_CODEC_APTX_CL)
         {
             acquire_codec_mutex_lock();
             if (a2d_av_aptx_cfg_in_cap((uint8_t *)p_codec_cfg,
@@ -1932,7 +1932,7 @@ static bool bta_avk_co_audio_supports_config(uint8_t codec_type, const uint8_t *
 #endif
 
 #if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
-        if (get_vendor_specific_codec(p_codec_cfg) == A2D_VENDOR_CODEC_APTX_AD)
+        if (get_vendor_specific_codec(const_cast<uint8_t *>(p_codec_cfg))== A2D_VENDOR_CODEC_APTX_AD)
         {
             acquire_codec_mutex_lock();
             if (a2d_avk_aptx_ad_cfg_in_cap((uint8_t *)p_codec_cfg,
