@@ -3513,6 +3513,27 @@ void bta_avk_open_rc (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
         }
     }
 }
+/*******************************************************************************
+**
+** Function         bta_avk_get_connected_device
+**
+** Description      Get the a2dp connected device
+**
+** Returns          btaddress if any device is connected
+**
+*******************************************************************************/
+RawAddress bta_avk_get_connected_device() {
+  uint8_t idx;
+  tBTA_AVK_SCB * p_opened_scb = NULL;
+  RawAddress bd_addr = RawAddress::kEmpty;
+  for (idx = 0; (idx < BTA_AVK_NUM_STRS); idx++ ){
+    p_opened_scb = bta_avk_cb.p_scb[idx];
+    if (p_opened_scb && (p_opened_scb->state == BTA_AVK_OPEN_SST)) {
+      bd_addr = p_opened_scb->peer_addr;
+    }
+  }
+  return bd_addr;
+}
 
 /*******************************************************************************
 **
