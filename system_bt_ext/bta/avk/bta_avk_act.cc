@@ -54,6 +54,7 @@
 #include "bta_ar_int_ext.h"
 
 static const uint8_t browsing_sniff_black_list_prefix[][3] = {{0x34, 0xc0, 0x59}};
+extern RawAddress bta_hf_client_get_connected_device();
 
 /*****************************************************************************
 **  Constants
@@ -1817,6 +1818,12 @@ void bta_avk_sig_chg(tBTA_AVK_DATA *p_data)
                 APPL_TRACE_ERROR("avk scb not available for avdt connection");
                 AVDT_DisconnectReq (p_data->str_msg.bd_addr, NULL);
                 return;
+            }
+            RawAddress peer_bda =  bta_hf_client_get_connected_device();
+            if((peer_bda != RawAddress::kEmpty) && (peer_bda != p_data->str_msg.bd_addr)){
+               APPL_TRACE_ERROR("Aborting A2dp connection as HFP is connected with other device");
+               AVDT_DisconnectReq (p_data->str_msg.bd_addr, NULL);
+               return;
             }
         }
     }

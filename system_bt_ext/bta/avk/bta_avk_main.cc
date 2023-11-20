@@ -833,6 +833,11 @@ static void bta_avk_api_register(tBTA_AVK_DATA *p_data)
                         continue;
                     }
                 }
+                if(index == BTIF_SV_AVK_AA_MP3_INDEX) {
+                    index ++;
+                    APPL_TRACE_DEBUG("MP3 codec skipped");
+                    continue;
+                }
                 if((index ==  BTIF_SV_AVK_AA_APTX_AD_INDEX) ||
                    (index ==  BTIF_SV_AVK_AA_APTX_INDEX))
                 {
