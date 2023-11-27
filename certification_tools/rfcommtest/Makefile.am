@@ -13,17 +13,17 @@ AM_CFLAGS = -Wall \
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS += -I${WORKSPACE}/vendor/qcom/opensource/system/bt/stack/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/internal_include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/stack/l2cap \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/utils/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/btif/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/bta/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/system_bt_ext/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/bluetooth_ext/vhal/include \
-    -I${WORKSPACE}/vendor/qcom/opensource/system/bt/types \
+AM_CPPFLAGS += -I${WORKSPACE}/bluetooth/stack/system/bt/stack/include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/internal_include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/stack/l2cap \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/utils/include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/btif/include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/bta/include \
+    -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/system_bt_ext/include \
+    -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/vhal/include \
+    -I${WORKSPACE}/bluetooth/stack/system/bt/types \
     -I${WORKSPACE}/system/core/include \
     -I$(bdroid_C_INCLUDES)
 

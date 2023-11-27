@@ -55,6 +55,7 @@
 #include "bt_testapp.h"
 #include "mca_defs.h"
 #include "mca_api.h"
+#include <cstdarg>
 
 /************************************************************************************
 **  Constants & Macros

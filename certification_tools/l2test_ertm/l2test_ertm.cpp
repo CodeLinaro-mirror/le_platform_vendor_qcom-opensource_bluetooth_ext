@@ -54,6 +54,7 @@
 #include <hardware/hardware.h>
 #include <hardware/bluetooth.h>
 #include <hardware/vendor.h>
+#include <cstdarg>
 
 /************************************************************************************
 **  Constants & Macros

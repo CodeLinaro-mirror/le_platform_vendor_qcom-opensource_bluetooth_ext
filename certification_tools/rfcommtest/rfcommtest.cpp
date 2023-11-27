@@ -52,6 +52,7 @@
 #include "bt_target.h"
 #include "bt_testapp.h"
 #include "raw_address.h"
+#include <cstdarg>
 
 /************************************************************************************
 **  Constants & Macros
