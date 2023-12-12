@@ -46,7 +46,7 @@
 static const char *PROFILE_CONF_FILE_PATH = "bt_profile.conf";
 #else  // !defined(OS_GENERIC)
 static const char *PROFILE_CONF_BASE_FILE_PATH = "/etc/bluetooth/bt_profile.conf";
-static const char *PROFILE_CONF_FILE_PATH = "/data/misc/bluetooth/bt_profile.conf";
+static const char *PROFILE_CONF_FILE_PATH = "/etc/bluetooth/bt_profile.conf";
 #endif  // defined(OS_GENERIC)
 
 list_t *profile_conf_list = NULL;
