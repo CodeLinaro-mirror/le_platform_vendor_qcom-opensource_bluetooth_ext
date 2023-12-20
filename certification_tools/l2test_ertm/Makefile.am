@@ -13,17 +13,17 @@ AM_CFLAGS = -Wall \
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS += -I${WORKSPACE}/bluetooth/stack/system/bt/stack/include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/internal_include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/stack/l2cap \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/utils/include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/btif/include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/bta/include \
-    -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/system_bt_ext/include \
-    -I${WORKSPACE}/bluetooth/stack/bluetooth_ext/vhal/include \
-    -I${WORKSPACE}/bluetooth/stack/system/bt/types \
+AM_CPPFLAGS += -I${BT_SOURCE}/stack/system/bt/stack/include \
+    -I${BT_SOURCE}/stack/system/bt/include \
+    -I${BT_SOURCE}/stack/system/bt/internal_include \
+    -I${BT_SOURCE}/stack/system/bt/stack/l2cap \
+    -I${BT_SOURCE}/stack/system/bt/utils/include \
+    -I${BT_SOURCE}/stack/system/bt \
+    -I${BT_SOURCE}/stack/system/bt/btif/include \
+    -I${BT_SOURCE}/stack/system/bt/bta/include \
+    -I${BT_SOURCE}/stack/bluetooth_ext/system_bt_ext/include \
+    -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
+    -I${BT_SOURCE}/stack/system/bt/types \
     -I$(bdroid_C_INCLUDES)
 
 
