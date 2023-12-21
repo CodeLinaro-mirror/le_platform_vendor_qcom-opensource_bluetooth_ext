@@ -35,8 +35,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "osi/include/properties.h"
-
+#include <cutils/properties.h>
+#include "device/include/interop.h"
 #include "bta_avk_int.h"
 #include "avdt_api.h"
 #include "utl.h"
@@ -2222,6 +2222,26 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
     (*bta_avk_cb.p_cback)(BTA_AVK_REJECT_EVT, (tBTA_AVK *) &reject);
 }
 
+/****************************************************************************
+ * **
+ * ** Function         dev_blacklisted_for_avdtp_discover
+ * **
+ * ** Description      This function is called to check if Remote device
+ * **                  is blacklisted for avdtp discover.
+ * **
+ * ** Returns          BOOLEAN
+ * **
+ * *******************************************************************************/
+bool inline dev_blacklisted_for_avdtp_discover (RawAddress addr)
+{
+    if (interop_match_addr(INTEROP_DISABLE_AVDTP_DISCOVER_COMMAND, &addr)) {
+        APPL_TRACE_ERROR("%s: device is blacklisted for avdtp_discover", __func__);
+        AVDT_UpdateServiceBusyState(false);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 /*******************************************************************************
 **
 ** Function         bta_avk_discover_req
@@ -2233,6 +2253,9 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 *******************************************************************************/
 void bta_avk_discover_req (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 {
+    // do not send avdtp discover request if device blacklisted
+    if(dev_blacklisted_for_avdtp_discover(p_scb->peer_addr)) return;
+
     /* send avdtp discover request */
 
     AVDT_DiscoverReq(p_scb->peer_addr, p_scb->sep_info, BTA_AVK_NUM_SEPS, bta_avk_dt_cback[p_scb->hdi]);
