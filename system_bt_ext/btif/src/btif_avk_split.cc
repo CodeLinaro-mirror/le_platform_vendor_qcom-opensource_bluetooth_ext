@@ -624,7 +624,16 @@ static bool btif_avk_split_state_idle_handler(btif_sm_event_t event, void *p_dat
                 }
             }
             break;
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
 
+            btif_report_connection_state(BTAV_CONNECTION_STATE_CONNECTING,
+                    (bt_bdaddr_t *) &(bta_avk_media->avk_config.bd_addr));
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
+        } break;
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
         {
             btif_avk_config_req_t req;
@@ -845,6 +854,14 @@ static bool btif_avk_split_state_opening_handler(btif_sm_event_t event, void *p_
             BTIF_TRACE_DEBUG("%s: BTA_AVK_MTU_CONFIG_EVT", __func__);
             HAL_CBACK(bt_av_sink_vendor_callbacks, mtu_config_cb,
                       p_av->mtu_config.mtu,btif_avk_cb[index].peer_bda);
+        } break;
+
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
         } break;
 
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
@@ -1294,6 +1311,14 @@ static bool btif_avk_split_state_opened_handler(btif_sm_event_t event, void *p_d
             break;
 
         CHECK_AVK_RC_EVENT(event, (tBTA_AVK*)p_data);
+
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
+        } break;
 
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
         {
@@ -2290,10 +2315,7 @@ static void btif_avk_handle_event(uint16_t event, char* p_param)
             index = btif_avk_idx_by_bdaddr(&(req.peer_bd));
             break;
         case BTA_AVK_MEDIA_SINK_CFG_EVT:
-            tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_param;
-            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
-                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
-            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT",__FUNCTION__);
             break;
         default:
             BTIF_TRACE_ERROR(" %s Unhandled AVK event = %d",__FUNCTION__ ,event);
