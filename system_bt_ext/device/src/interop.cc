@@ -245,6 +245,7 @@ static const char* interop_feature_string_(const interop_feature_t feature)
     CASE_RETURN_STR(INTEROP_ADV_PBAP_VER_1_2)
     CASE_RETURN_STR(INTEROP_DISABLE_RESOLVING)
     CASE_RETURN_STR(INTEROP_PINKEY_MISSING)
+    CASE_RETURN_STR(INTEROP_DISABLE_AVDTP_DISCOVER_COMMAND)
   }
   return "UNKNOWN";
 }
