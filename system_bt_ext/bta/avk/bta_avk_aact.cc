@@ -96,7 +96,9 @@ A2DP_SINK_OFFLOAD_PARAM offload_sink_start;
 typedef union {
     tA2D_SBC_CIE sbc_caps;
     tA2D_AAC_CIE aac_caps;
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     tA2D_MP3_CIE mp3_caps;
+#endif
     tA2D_APTX_CIE aptx_caps;
     tA2D_APTX_HD_CIE aptx_hd_caps;
     tA2DP_AVK_APTX_AD_CIE aptx_ad_caps;
