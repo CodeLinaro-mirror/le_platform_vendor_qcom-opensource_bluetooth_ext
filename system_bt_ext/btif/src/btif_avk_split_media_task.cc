@@ -34,7 +34,7 @@
 #ifdef BT_AUDIO_SYSTRACE_LOG
 #define ATRACE_TAG ATRACE_TAG_ALWAYS
 #endif
-#if 0
+
 #define LOG_TAG "bt_btif_avk_split_media"
 
 #include <assert.h>
@@ -586,7 +586,6 @@ static uint64_t time_now_us()
     return ((uint64_t)ts_now.tv_sec * USEC_PER_SEC) + ((uint64_t)ts_now.tv_nsec / 1000);
 }
 
-#endif
 
 #endif /* BTA_AV_INCLUDED == TRUE */
 
