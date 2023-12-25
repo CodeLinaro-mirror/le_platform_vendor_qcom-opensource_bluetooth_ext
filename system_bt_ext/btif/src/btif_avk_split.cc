@@ -3958,3 +3958,4 @@ static void send_codec_config_report(tBTA_AVK_MEDIA *p_data, RawAddress bd_addr 
         }
     }
 }
+#endif

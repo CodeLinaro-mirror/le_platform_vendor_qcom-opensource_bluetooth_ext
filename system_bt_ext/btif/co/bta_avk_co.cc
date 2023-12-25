@@ -1521,7 +1521,7 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
         num_protect, p_protect_info[0], p_protect_info[1], p_protect_info[2]);
 
     char value[PROPERTY_VALUE_MAX] = {'\0'};
-    property_get("vendor.bt.pts.certification", value, "false");
+    osi_property_get("vendor.bt.pts.certification", value, "false");
     if (!(strcmp(value,"true"))) {
         status = A2DP_IsPeerCodecValid(codec_type, p_codec_info);
         if (status != A2DP_SUCCESS) {
@@ -1567,7 +1567,7 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
             }
         } else {
             APPL_TRACE_ERROR("bta_av_co_audio_setconfig wrong CP configuration");
-      if (property_get("vendor.bt.pts.certfication_cp_format", value, "false") &&
+      if (osi_property_get("vendor.bt.pts.certfication_cp_format", value, "false") &&
          (strcmp(value, "true") == 0)) {
          status = A2DP_BAD_CP_FORMAT;
       } else {

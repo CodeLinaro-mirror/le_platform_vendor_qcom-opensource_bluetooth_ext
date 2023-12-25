@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
 #include "device/include/interop.h"
 #include "bta_avk_int.h"
 #include "avdt_api.h"
@@ -2206,7 +2206,7 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
     uint8_t   avdt_handle = p_data->ci_setconfig.avdt_handle;
     uint8_t error;
     char value[PROPERTY_VALUE_MAX] = {'\0'};
-    property_get("vendor.bt.pts.certification", value, "false");
+    osi_property_get("vendor.bt.pts.certification", value, "false");
     if (!(strcmp(value,"true"))) {
         error = p_data->ci_setconfig.err_code;
     } else {

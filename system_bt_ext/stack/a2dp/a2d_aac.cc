@@ -124,7 +124,7 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
             status = A2DP_WRONG_CODEC;
         else
         {
-            property_get("vendor.bt.pts.certification", value, "false");
+            osi_property_get("vendor.bt.pts.certification", value, "false");
             if (!(strcmp(value,"true"))) { pts_status = true; }
 
             p_info++;
@@ -166,7 +166,7 @@ tA2DP_STATUS A2D_ParsAacInfo(tA2D_AAC_CIE *p_ie, uint8_t *p_info, bool for_caps)
                 if(A2D_UINT32_BitsSet(p_ie->channels) != A2DP_SET_ONE_BIT)
                     status = A2DP_BAD_CHANNEL;
                 if (drc) {
-                    property_get("vendor.bt.pts.certification_ns_drc", value, "false");
+                    osi_property_get("vendor.bt.pts.certification_ns_drc", value, "false");
                     if (!(strcmp(value,"true"))) {
                         return A2DP_NS_DRC;
                     } else {
