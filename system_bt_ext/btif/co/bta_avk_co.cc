@@ -322,7 +322,7 @@ uint8_t codec_initialized[BTIF_SV_AVK_AA_SEP_INDEX];
 bool is_codec_enabled(uint8_t codec_index);
 extern bool is_a2dp_split_sink_enabled();
 extern pthread_mutex_t sink_codec_q_lock;
-pthread_mutex_t split_sink_codec_q_lock;
+extern pthread_mutex_t split_sink_codec_q_lock;
 
 uint8_t bta_avk_get_current_codec()
 {

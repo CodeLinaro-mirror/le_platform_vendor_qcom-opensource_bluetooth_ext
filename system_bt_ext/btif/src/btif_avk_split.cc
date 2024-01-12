@@ -26,14 +26,15 @@
  *  Description:   Bluedroid AVK implementation
  *
  *****************************************************************************/
-#if 0
+
 #include <assert.h>
 #include <string.h>
 
 #include <hardware/bluetooth.h>
 #include "hardware/bt_av.h"
 #include "osi/include/allocator.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
+//#include <cutils/properties.h>
 
 #define LOG_TAG "bt_btif_avk_split"
 
@@ -3958,4 +3959,3 @@ static void send_codec_config_report(tBTA_AVK_MEDIA *p_data, RawAddress bd_addr 
         }
     }
 }
-#endif
