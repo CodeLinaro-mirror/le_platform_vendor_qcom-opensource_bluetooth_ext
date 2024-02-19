@@ -26,14 +26,15 @@
  *  Description:   Bluedroid AVK implementation
  *
  *****************************************************************************/
-#if 0
+
 #include <assert.h>
 #include <string.h>
 
 #include <hardware/bluetooth.h>
 #include "hardware/bt_av.h"
 #include "osi/include/allocator.h"
-#include <cutils/properties.h>
+#include "osi/include/properties.h"
+//#include <cutils/properties.h>
 
 #define LOG_TAG "bt_btif_avk_split"
 
@@ -226,6 +227,7 @@ static bt_status_t init_sink_vendor(btav_sink_vendor_callbacks_t* callbacks, int
 bool btif_avk_split_is_connected(void);
 void btif_avk_pending_start_timeout_handler(void* data);
 void btif_avk_pending_suspend_timeout_handler(void* data);
+static void send_codec_config_report(tBTA_AVK_MEDIA *p_data, RawAddress bd_addr);
 
 static const btif_sm_handler_t btif_avk_state_handlers[] =
 {
@@ -322,6 +324,7 @@ static const char *dump_avk_sm_event_name(btif_avk_sm_event_t event)
         CASE_RETURN_STR(BTIF_AVK_SPLIT_PENDING_SUSPEND_ALARM_TIMEOUT)
         CASE_RETURN_STR(BTA_AVK_MTU_CONFIG_EVT)
         CASE_RETURN_STR(BTA_AVK_CP_FLAG_UPDATE_EVT)
+        CASE_RETURN_STR(BTA_AVK_MEDIA_SINK_CFG_EVT)
         default: return "UNKNOWN_EVENT";
    }
 }
@@ -622,7 +625,16 @@ static bool btif_avk_split_state_idle_handler(btif_sm_event_t event, void *p_dat
                 }
             }
             break;
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
 
+            btif_report_connection_state(BTAV_CONNECTION_STATE_CONNECTING,
+                    (bt_bdaddr_t *) &(bta_avk_media->avk_config.bd_addr));
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
+        } break;
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
         {
             btif_avk_config_req_t req;
@@ -843,6 +855,14 @@ static bool btif_avk_split_state_opening_handler(btif_sm_event_t event, void *p_
             BTIF_TRACE_DEBUG("%s: BTA_AVK_MTU_CONFIG_EVT", __func__);
             HAL_CBACK(bt_av_sink_vendor_callbacks, mtu_config_cb,
                       p_av->mtu_config.mtu,btif_avk_cb[index].peer_bda);
+        } break;
+
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
         } break;
 
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
@@ -1293,6 +1313,14 @@ static bool btif_avk_split_state_opened_handler(btif_sm_event_t event, void *p_d
 
         CHECK_AVK_RC_EVENT(event, (tBTA_AVK*)p_data);
 
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+        {   tBTA_AVK_MEDIA *bta_avk_media = (tBTA_AVK_MEDIA *)p_data;
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT addr:%s",__FUNCTION__,
+                              bta_avk_media->avk_config.bd_addr.ToString().c_str());
+
+            send_codec_config_report(bta_avk_media, bta_avk_media->avk_config.bd_addr);
+        } break;
+
         case BTIF_AVK_SINK_CONFIG_REQ_EVT:
         {
             btif_avk_config_req_t req;
@@ -1502,7 +1530,7 @@ static bool btif_avk_split_state_starting_handler(btif_sm_event_t event, void *p
             uint8_t latency[8];
             memcpy(latency, p_data, 8);
             btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_STARTED);
-            //BTA_AvkSendPedingStartCnf(btif_avk_cb[index].bta_handle);
+            BTA_AvkSendPedingStartCnf(btif_avk_cb[index].bta_handle);
             btif_update_cmd_status(A2DP_AVK_CTRL_SESSION_SETUP_COMPLETE, A2DP_CTRL_ACK_SUCCESS);
             btif_avk_cb[index].delay = 0;
             btif_avk_cb[index].delay = (latency[0] & 0x000000FF) |
@@ -2287,6 +2315,9 @@ static void btif_avk_handle_event(uint16_t event, char* p_param)
             memcpy(&req, p_param, sizeof(req));
             index = btif_avk_idx_by_bdaddr(&(req.peer_bd));
             break;
+        case BTA_AVK_MEDIA_SINK_CFG_EVT:
+            BTIF_TRACE_IMP("%s event:BTA_AVK_MEDIA_SINK_CFG_EVT",__FUNCTION__);
+            break;
         default:
             BTIF_TRACE_ERROR(" %s Unhandled AVK event = %d",__FUNCTION__ ,event);
             break;
@@ -2409,218 +2440,12 @@ static void bte_avk_callback(tBTA_AVK_EVT event, tBTA_AVK *p_data)
 /*Called only in case of A2dp SInk*/
 static void bte_avk_media_callback(tBTA_AVK_EVT event, tBTA_AVK_MEDIA *p_data, RawAddress bd_addr)
 {
-    btif_sm_state_t state;
-    uint8_t que_len;
-    tA2DP_STATUS a2d_status;
-    tA2D_SBC_CIE sbc_cie;
-    uint8_t* start_ptr;
-    uint16_t data_len;
-    BT_HDR* p_pkt;
-    uint8_t rtp_offset = 0;
-#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
-    tA2D_AAC_CIE aac_cie;
-#endif
-#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
-    tA2D_MP3_CIE mp3_cie;
-#endif
-#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
-    tA2D_APTX_CIE aptx_cie;
-#endif
-#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
-    tA2D_APTX_HD_CIE aptx_hd_cie;
-#endif
-#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
-    tA2DP_AVK_APTX_AD_CIE aptx_ad_cie;
-#endif
-    btif_avk_config_req_t config_req;
-    int index = btif_avk_idx_by_bdaddr(&bd_addr);
-    if (index >= btif_max_avk_clients)
-    {
-        BTIF_TRACE_DEBUG("%s Invalid index for device", __FUNCTION__);
-        return;
-    }
-
     if (event == BTA_AVK_MEDIA_SINK_CFG_EVT) {
-        uint8_t* config = (uint8_t*)(p_data->avk_config.codec_info);
-        uint8_t codec_type = config[2];
-        /* send a command to BT Media Task */
-        //memcpy(config_req.codec_info,(uint8_t*)(p_data->avk_config.codec_info), AVDT_CODEC_SIZE);
-        config_req.codec_type = codec_type;
-        btif_avk_cb[index].sink_codec_type = codec_type;
-        btif_avk_cb[index].avdt_sync = bta_avk_is_avdt_sync(btif_avk_cb[index].bta_handle);
-        BTIF_TRACE_DEBUG(" %s btif_avk_cb[%d].avdt_sync is [%d]",__func__,index,
-                      btif_avk_cb[index].avdt_sync);
-        switch(codec_type)
-        {
-        case BTIF_AVK_CODEC_SBC:
-            BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
-            btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
-
-            a2d_status = A2D_ParsSbcInfo(&sbc_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-            if (a2d_status == A2DP_SUCCESS) {
-                /* Switch to BTIF context */
-                config_req.sample_rate = btif_avk_a2dp_get_sbc_track_frequency(sbc_cie.samp_freq);
-                config_req.channel_count = btif_avk_a2dp_get_sbc_track_channel_count(sbc_cie.ch_mode);
-                config_req.codec_info.sbc_config.samp_freq = sbc_cie.samp_freq;
-                config_req.codec_info.sbc_config.ch_mode = sbc_cie.ch_mode;
-                config_req.codec_info.sbc_config.block_len = sbc_cie.block_len;
-                config_req.codec_info.sbc_config.alloc_mthd = sbc_cie.alloc_mthd;
-                config_req.codec_info.sbc_config.max_bitpool = sbc_cie.max_bitpool;
-                config_req.codec_info.sbc_config.min_bitpool = sbc_cie.min_bitpool;
-                config_req.codec_info.sbc_config.num_subbands = sbc_cie.num_subbands;
-                config_req.peer_bd = p_data->avk_config.bd_addr;
-                config_req.codec_info.sbc_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                         (char*)&config_req, sizeof(config_req), NULL);
-            }
-            else
-            {
-                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsSbcInfo fail:%d", a2d_status);
-            }
-            break;
-
-#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
-        case BTA_AVK_CODEC_M24:
-            BTIF_TRACE_DEBUG("delay has been inited as :%d", AAC_RENDERING_DELAY);
-            btif_avk_cb[index].delay = AAC_RENDERING_DELAY;
-
-            a2d_status = A2D_ParsAacInfo(&aac_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-            if (a2d_status == A2DP_SUCCESS) {
-                /* Switch to BTIF context */
-                config_req.sample_rate = btif_avk_a2dp_get_aac_track_frequency(aac_cie.samp_freq);
-                config_req.channel_count = btif_avk_a2dp_get_aac_track_channel_count(aac_cie.channels);
-                config_req.codec_info.aac_config.bit_rate = aac_cie.bit_rate;
-                config_req.codec_info.aac_config.sampling_freq = aac_cie.samp_freq;
-                config_req.codec_info.aac_config.obj_type = aac_cie.object_type;
-                config_req.codec_info.aac_config.channel_count = aac_cie.channels;
-                config_req.codec_info.aac_config.vbr = aac_cie.vbr;
-                config_req.peer_bd = p_data->avk_config.bd_addr;
-                config_req.codec_info.aac_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                     (char*)&config_req, sizeof(config_req), NULL);
-            } else {
-                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAacInfo fail:%d", a2d_status);
-            }
-            break;
-#endif
-#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
-        case BTA_AVK_CODEC_M12:
-            BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
-            btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
-
-            a2d_status = A2D_ParsMp3Info(&mp3_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-            if (a2d_status == A2DP_SUCCESS) {
-                /* Switch to BTIF context */
-                config_req.sample_rate = btif_avk_a2dp_get_mp3_track_frequency(mp3_cie.samp_freq);
-                config_req.channel_count = btif_avk_a2dp_get_mp3_track_channel_count(mp3_cie.channels);
-                config_req.codec_info.mp3_config.bit_rate = mp3_cie.bit_rate;
-                config_req.codec_info.mp3_config.sampling_freq = mp3_cie.samp_freq;
-                config_req.codec_info.mp3_config.layer = mp3_cie.layer;
-                config_req.codec_info.mp3_config.channel_count = mp3_cie.channels;
-                config_req.codec_info.mp3_config.vbr = mp3_cie.vbr;
-                config_req.codec_info.mp3_config.mpf = mp3_cie.mpf;
-                config_req.codec_info.mp3_config.crc = mp3_cie.crc;
-                config_req.peer_bd = p_data->avk_config.bd_addr;
-                config_req.codec_info.mp3_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                     (char*)&config_req, sizeof(config_req), NULL);
-            } else {
-                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsMp3Info fail:%d", a2d_status);
-            }
-            break;
-#endif
-        case A2D_NON_A2DP_MEDIA_CT:
-        /* p_data->avk_config.codec_info  can tell us about APTX-CL or APTX-AD */
-#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
-        if ((get_codec_id(p_data->avk_config.codec_info) == A2D_APTX_CODEC_ID_BLUETOOTH) &&
-           (get_vendor_id(p_data->avk_config.codec_info) == A2D_APTX_VENDOR_ID))
-        {
-                BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_RENDERING_DELAY);
-                btif_avk_cb[index].delay = APTX_RENDERING_DELAY;
-
-                a2d_status = A2D_ParsAptxInfo(&aptx_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-                if (a2d_status == A2DP_SUCCESS) {
-                    /* Switch to BTIF context */
-                    /* setting APTX for Vendor specific codec right now */
-                    config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX;
-                    config_req.sample_rate = btif_avk_a2dp_get_aptx_track_frequency(aptx_cie.sampleRate);
-                    config_req.channel_count = btif_avk_a2dp_get_aptx_track_channel_count(aptx_cie.channelMode);
-                    config_req.codec_info.aptx_config.vendor_id = aptx_cie.vendorId;
-                    config_req.codec_info.aptx_config.codec_id = aptx_cie.codecId;
-                    config_req.codec_info.aptx_config.sampling_freq = aptx_cie.sampleRate;
-                    config_req.codec_info.aptx_config.channel_count = aptx_cie.channelMode;
-                    config_req.peer_bd = p_data->avk_config.bd_addr;
-                    config_req.codec_info.aptx_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                    btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                        (char*)&config_req, sizeof(config_req), NULL);
-                } else {
-                    APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAptxInfo fail:%d", a2d_status);
-                }
-        }
-#endif
-#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
-        if ((get_codec_id(p_data->avk_config.codec_info) == A2D_APTX_HD_CODEC_ID_BLUETOOTH) &&
-           (get_vendor_id(p_data->avk_config.codec_info) == A2D_APTX_HD_VENDOR_ID))
-        {
-                BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_HD_RENDERING_DELAY);
-                btif_avk_cb[index].delay = APTX_HD_RENDERING_DELAY;
-
-                a2d_status = A2D_ParsAptx_hdInfo(&aptx_hd_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-                if (a2d_status == A2DP_SUCCESS) {
-                    /* Switch to BTIF context */
-                    /* setting APTX HD for Vendor specific codec right now */
-                    config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX_HD;
-                    config_req.sample_rate = btif_avk_a2dp_get_aptx_hd_track_frequency(aptx_hd_cie.sampleRate);
-                    config_req.channel_count = btif_avk_a2dp_get_aptx_hd_track_channel_count(aptx_hd_cie.channelMode);
-                    config_req.codec_info.aptx_hd_config.vendor_id = aptx_hd_cie.vendorId;
-                    config_req.codec_info.aptx_hd_config.codec_id = aptx_hd_cie.codecId;
-                    config_req.codec_info.aptx_hd_config.sampling_freq = aptx_hd_cie.sampleRate;
-                    config_req.codec_info.aptx_hd_config.channel_count = aptx_hd_cie.channelMode;
-                    config_req.peer_bd = p_data->avk_config.bd_addr;
-                    config_req.codec_info.aptx_hd_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                    btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                        (char*)&config_req, sizeof(config_req), NULL);
-                } else {
-                    APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAptxInfo fail:%d", a2d_status);
-                }
-        }
-#endif
-#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
-        if ((get_codec_id(p_data->avk_config.codec_info) == A2DP_AVK_APTX_AD_CODEC_ID_BLUETOOTH) &&
-           (get_vendor_id(p_data->avk_config.codec_info) == A2DP_AVK_APTX_AD_VENDOR_ID))
-        {
-                BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_AD_RENDERING_DELAY);
-                btif_avk_cb[index].delay = APTX_AD_RENDERING_DELAY;
-
-                a2d_status = A2DP_ParseInfoAptxAdaptiveDecoder(&aptx_ad_cie,
-                                (uint8_t *)(p_data->avk_config.codec_info), FALSE);
-                if (a2d_status == A2DP_SUCCESS) {
-                    /* Switch to BTIF context */
-                    /* setting APTX for Vendor specific codec right now */
-                    config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX_AD;
-                    config_req.sample_rate = btif_avk_a2dp_get_aptx_ad_track_frequency(aptx_ad_cie.sampleRate);
-                    config_req.channel_count = btif_avk_a2dp_get_aptx_ad_track_channel_count(aptx_ad_cie.channelMode);
-                    config_req.codec_info.aptx_ad_config.vendor_id = aptx_ad_cie.vendorId;
-                    config_req.codec_info.aptx_ad_config.codec_id = aptx_ad_cie.codecId;
-                    config_req.codec_info.aptx_ad_config.sampling_freq = aptx_ad_cie.sampleRate;
-                    config_req.codec_info.aptx_ad_config.channel_count = aptx_ad_cie.channelMode;
-                    config_req.peer_bd = p_data->avk_config.bd_addr;
-                    config_req.codec_info.aptx_ad_config.delay_report_status = btif_avk_cb[index].avdt_sync;
-                    btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SINK_CONFIG_REQ_EVT,
-                                        (char*)&config_req, sizeof(config_req), NULL);
-                } else {
-                    APPL_TRACE_ERROR("ERROR dump_codec_info A2D_AD_ParsAptxInfo fail:%d", a2d_status);
-                }
-        }
-#endif
-            break;
-
-            default:
-            BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
-            btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
-            break;
-        }
+       BTIF_TRACE_DEBUG("%s handle event %d in btif context",__FUNCTION__, event);
+       btif_transfer_context(btif_avk_handle_event, event,
+                (char *)p_data, sizeof(tBTA_AVK_MEDIA), NULL);
     }
+
 }
 
 
@@ -3930,4 +3755,207 @@ void btif_avk_pending_suspend_timeout_handler(void* data) {
     btif_transfer_context(btif_avk_handle_event, BTIF_AVK_SPLIT_PENDING_SUSPEND_ALARM_TIMEOUT,
                                (char *)data, sizeof(bt_bdaddr_t), NULL);
 }
+
+static void send_codec_config_report(tBTA_AVK_MEDIA *p_data, RawAddress bd_addr ) {
+    tA2DP_STATUS a2d_status;
+    tA2D_SBC_CIE sbc_cie;
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
+    tA2D_AAC_CIE aac_cie;
 #endif
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
+    tA2D_MP3_CIE mp3_cie;
+#endif
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
+    tA2D_APTX_CIE aptx_cie;
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
+    tA2D_APTX_HD_CIE aptx_hd_cie;
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
+    tA2DP_AVK_APTX_AD_CIE aptx_ad_cie;
+#endif
+    btif_avk_config_req_t config_req;
+    int index = btif_avk_idx_by_bdaddr(&bd_addr);
+    if (index >= btif_max_avk_clients)
+    {
+        BTIF_TRACE_DEBUG("%s Invalid index for device", __FUNCTION__);
+        return;
+    }
+
+    uint8_t* config = (uint8_t*)(p_data->avk_config.codec_info);
+    uint8_t codec_type = config[2];
+    /* send a command to BT Media Task */
+    //memcpy(config_req.codec_info,(uint8_t*)(p_data->avk_config.codec_info), AVDT_CODEC_SIZE);
+    config_req.codec_type = codec_type;
+    btif_avk_cb[index].sink_codec_type = codec_type;
+    btif_avk_cb[index].avdt_sync = bta_avk_is_avdt_sync(btif_avk_cb[index].bta_handle);
+    BTIF_TRACE_DEBUG(" %s btif_avk_cb[%d].avdt_sync is [%d]",__func__,index,
+                      btif_avk_cb[index].avdt_sync);
+    switch(codec_type)
+    {
+    case BTIF_AVK_CODEC_SBC:
+        BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
+        btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
+
+       a2d_status = A2D_ParsSbcInfo(&sbc_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+        if (a2d_status == A2DP_SUCCESS) {
+            /* Switch to BTIF context */
+            config_req.sample_rate = btif_avk_a2dp_get_sbc_track_frequency(sbc_cie.samp_freq);
+            config_req.channel_count = btif_avk_a2dp_get_sbc_track_channel_count(sbc_cie.ch_mode);
+            config_req.codec_info.sbc_config.samp_freq = sbc_cie.samp_freq;
+            config_req.codec_info.sbc_config.ch_mode = sbc_cie.ch_mode;
+            config_req.codec_info.sbc_config.block_len = sbc_cie.block_len;
+            config_req.codec_info.sbc_config.alloc_mthd = sbc_cie.alloc_mthd;
+            config_req.codec_info.sbc_config.max_bitpool = sbc_cie.max_bitpool;
+            config_req.codec_info.sbc_config.min_bitpool = sbc_cie.min_bitpool;
+            config_req.codec_info.sbc_config.num_subbands = sbc_cie.num_subbands;
+            config_req.peer_bd = p_data->avk_config.bd_addr;
+            config_req.codec_info.sbc_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+        }
+        else
+        {
+            APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsSbcInfo fail:%d", a2d_status);
+        }
+        break;
+
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
+    case BTA_AVK_CODEC_M24:
+        BTIF_TRACE_DEBUG("delay has been inited as :%d", AAC_RENDERING_DELAY);
+        btif_avk_cb[index].delay = AAC_RENDERING_DELAY;
+        a2d_status = A2D_ParsAacInfo(&aac_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+        if (a2d_status == A2DP_SUCCESS) {
+            /* Switch to BTIF context */
+            config_req.sample_rate = btif_avk_a2dp_get_aac_track_frequency(aac_cie.samp_freq);
+            config_req.channel_count = btif_avk_a2dp_get_aac_track_channel_count(aac_cie.channels);
+            config_req.codec_info.aac_config.bit_rate = aac_cie.bit_rate;
+            config_req.codec_info.aac_config.sampling_freq = aac_cie.samp_freq;
+            config_req.codec_info.aac_config.obj_type = aac_cie.object_type;
+            config_req.codec_info.aac_config.channel_count = aac_cie.channels;
+            config_req.codec_info.aac_config.vbr = aac_cie.vbr;
+            config_req.peer_bd = p_data->avk_config.bd_addr;
+            config_req.codec_info.aac_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+        } else {
+            APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAacInfo fail:%d", a2d_status);
+        }
+        break;
+#endif
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
+    case BTA_AVK_CODEC_M12:
+        BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
+        btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
+        a2d_status = A2D_ParsMp3Info(&mp3_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+        if (a2d_status == A2DP_SUCCESS) {
+            /* Switch to BTIF context */
+            config_req.sample_rate = btif_avk_a2dp_get_mp3_track_frequency(mp3_cie.samp_freq);
+            config_req.channel_count = btif_avk_a2dp_get_mp3_track_channel_count(mp3_cie.channels);
+            config_req.codec_info.mp3_config.bit_rate = mp3_cie.bit_rate;
+            config_req.codec_info.mp3_config.sampling_freq = mp3_cie.samp_freq;
+            config_req.codec_info.mp3_config.layer = mp3_cie.layer;
+            config_req.codec_info.mp3_config.channel_count = mp3_cie.channels;
+            config_req.codec_info.mp3_config.vbr = mp3_cie.vbr;
+            config_req.codec_info.mp3_config.mpf = mp3_cie.mpf;
+            config_req.codec_info.mp3_config.crc = mp3_cie.crc;
+            config_req.peer_bd = p_data->avk_config.bd_addr;
+            config_req.codec_info.mp3_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+        } else {
+            APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsMp3Info fail:%d", a2d_status);
+        }
+        break;
+#endif
+    case A2D_NON_A2DP_MEDIA_CT:
+        /* p_data->avk_config.codec_info  can tell us about APTX-CL or APTX-AD */
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
+    if ((get_codec_id(p_data->avk_config.codec_info) == A2D_APTX_CODEC_ID_BLUETOOTH) &&
+       (get_vendor_id(p_data->avk_config.codec_info) == A2D_APTX_VENDOR_ID))
+    {
+            BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_RENDERING_DELAY);
+            btif_avk_cb[index].delay = APTX_RENDERING_DELAY;
+            a2d_status = A2D_ParsAptxInfo(&aptx_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+            if (a2d_status == A2DP_SUCCESS) {
+                /* Switch to BTIF context */
+                /* setting APTX for Vendor specific codec right now */
+                config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX;
+                config_req.sample_rate = btif_avk_a2dp_get_aptx_track_frequency(aptx_cie.sampleRate);
+                config_req.channel_count = btif_avk_a2dp_get_aptx_track_channel_count(aptx_cie.channelMode);
+                config_req.codec_info.aptx_config.vendor_id = aptx_cie.vendorId;
+                config_req.codec_info.aptx_config.codec_id = aptx_cie.codecId;
+                config_req.codec_info.aptx_config.sampling_freq = aptx_cie.sampleRate;
+                config_req.codec_info.aptx_config.channel_count = aptx_cie.channelMode;
+                config_req.peer_bd = p_data->avk_config.bd_addr;
+                config_req.codec_info.aptx_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+            } else {
+                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAptxInfo fail:%d", a2d_status);
+            }
+        }
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
+    if ((get_codec_id(p_data->avk_config.codec_info) == A2D_APTX_HD_CODEC_ID_BLUETOOTH) &&
+       (get_vendor_id(p_data->avk_config.codec_info) == A2D_APTX_HD_VENDOR_ID))
+    {
+            BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_HD_RENDERING_DELAY);
+            btif_avk_cb[index].delay = APTX_HD_RENDERING_DELAY;
+            a2d_status = A2D_ParsAptx_hdInfo(&aptx_hd_cie, (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+            if (a2d_status == A2DP_SUCCESS) {
+                /* Switch to BTIF context */
+                /* setting APTX HD for Vendor specific codec right now */
+                config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX_HD;
+                config_req.sample_rate = btif_avk_a2dp_get_aptx_hd_track_frequency(aptx_hd_cie.sampleRate);
+                config_req.channel_count = btif_avk_a2dp_get_aptx_hd_track_channel_count(aptx_hd_cie.channelMode);
+                config_req.codec_info.aptx_hd_config.vendor_id = aptx_hd_cie.vendorId;
+                config_req.codec_info.aptx_hd_config.codec_id = aptx_hd_cie.codecId;
+                config_req.codec_info.aptx_hd_config.sampling_freq = aptx_hd_cie.sampleRate;
+                config_req.codec_info.aptx_hd_config.channel_count = aptx_hd_cie.channelMode;
+                config_req.peer_bd = p_data->avk_config.bd_addr;
+                config_req.codec_info.aptx_hd_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+            } else {
+                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_ParsAptxInfo fail:%d", a2d_status);
+            }
+        }
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
+    if ((get_codec_id(p_data->avk_config.codec_info) == A2DP_AVK_APTX_AD_CODEC_ID_BLUETOOTH) &&
+       (get_vendor_id(p_data->avk_config.codec_info) == A2DP_AVK_APTX_AD_VENDOR_ID))
+    {
+            BTIF_TRACE_DEBUG("delay has been inited as :%d", APTX_AD_RENDERING_DELAY);
+            btif_avk_cb[index].delay = APTX_AD_RENDERING_DELAY;
+            a2d_status = A2DP_ParseInfoAptxAdaptiveDecoder(&aptx_ad_cie,
+                            (uint8_t *)(p_data->avk_config.codec_info), FALSE);
+            if (a2d_status == A2DP_SUCCESS) {
+                /* Switch to BTIF context */
+                /* setting APTX for Vendor specific codec right now */
+                config_req.codec_type = A2DP_SINK_AUDIO_CODEC_APTX_AD;
+                config_req.sample_rate = btif_avk_a2dp_get_aptx_ad_track_frequency(aptx_ad_cie.sampleRate);
+                config_req.channel_count = btif_avk_a2dp_get_aptx_ad_track_channel_count(aptx_ad_cie.channelMode);
+                config_req.codec_info.aptx_ad_config.vendor_id = aptx_ad_cie.vendorId;
+                config_req.codec_info.aptx_ad_config.codec_id = aptx_ad_cie.codecId;
+                config_req.codec_info.aptx_ad_config.sampling_freq = aptx_ad_cie.sampleRate;
+                config_req.codec_info.aptx_ad_config.channel_count = aptx_ad_cie.channelMode;
+                config_req.peer_bd = p_data->avk_config.bd_addr;
+                config_req.codec_info.aptx_ad_config.delay_report_status = btif_avk_cb[index].avdt_sync;
+            } else {
+                APPL_TRACE_ERROR("ERROR dump_codec_info A2D_AD_ParsAptxInfo fail:%d", a2d_status);
+            }
+        }
+#endif
+        break;
+
+        default:
+        BTIF_TRACE_DEBUG("delay has been inited as :%d", DEFAULT_RENDERING_DELAY);
+        btif_avk_cb[index].delay = DEFAULT_RENDERING_DELAY;
+        break;
+    }
+
+
+    BTIF_TRACE_WARNING("send_codec_config_report %d %d %s %d",
+    config_req.sample_rate, config_req.channel_count, config_req.peer_bd.ToString().c_str(),
+    config_req.codec_type);
+
+    if (bt_av_sink_vendor_callbacks != NULL) {
+       HAL_CBACK(bt_av_sink_vendor_callbacks, audio_codec_config_vendor_cb,
+                   &(config_req.peer_bd), config_req.codec_type, config_req.codec_info);
+        if(enable_scmst) {
+           HAL_CBACK(bt_av_sink_vendor_callbacks, scmst_capabilities_cb,
+                 &(config_req.peer_bd),bta_avk_co_cp_is_active());
+        }
+    }
+}

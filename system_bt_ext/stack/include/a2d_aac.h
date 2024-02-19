@@ -41,6 +41,10 @@
 /* AAC media codec capabilitiy len*/
 #define A2D_AAC_INFO_LEN            8
 
+/* PTS Related Masks */
+#define A2D_AAC_IE_OBJ_TYPE_MSK_PTS            0xFE
+#define A2D_AAC_IE_CHANNELS_MSK_PTS            0x0F
+
 /* AAC Codec Specific */
 #define A2D_AAC_IE_OBJ_TYPE_MSK                0xF0    /* b7-b4 Object Type */
 #define A2D_AAC_IE_OBJ_TYPE_MPEG_2_AAC_LC      0x80    /* b7:MPEG-2 AAC LC */
@@ -77,8 +81,10 @@
 
 #define BTIF_AAC_DEFAULT_BIT_RATE 0x000409B6
 
+#define A2D_DRC_TYPE_MSK                       0x01    /* drc type */
 
 #include "a2dp_error_codes.h"
+#include "a2dp_codec_api.h"
 
 typedef struct  {
     int16_t s16SamplingFreq;  /* 16k, 32k, 44.1k or 48k*/
@@ -128,6 +134,8 @@ extern "C"
 **                  Error otherwise.
 ******************************************************************************/
 extern tA2DP_STATUS A2D_BldAacInfo(uint8_t media_type, tA2D_AAC_CIE *p_ie, uint8_t *p_result);
+
+extern tA2DP_STATUS A2D_PrepareAacInfoForAudioHal(uint8_t media_type, tA2D_AAC_CIE *p_ie, uint8_t *p_result);
 
 /******************************************************************************
 **

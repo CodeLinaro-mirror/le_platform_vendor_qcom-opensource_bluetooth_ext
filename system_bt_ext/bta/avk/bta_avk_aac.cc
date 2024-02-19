@@ -50,7 +50,7 @@ uint8_t bta_avk_aac_cfg_matches_cap(uint8_t *p_cfg, tA2D_AAC_CIE *p_cap)
     tA2D_AAC_CIE    cfg_cie;
 
     /* parse configuration */
-    if ((status = A2D_ParsAacInfo(&cfg_cie, p_cfg, TRUE)) != 0)
+    if ((status = A2D_ParsAacInfo(&cfg_cie, p_cfg, FALSE)) != 0)
     {
         APPL_TRACE_ERROR(" bta_av_aac_cfg_matches_cap Parsing Failed %d", status);
         return status;

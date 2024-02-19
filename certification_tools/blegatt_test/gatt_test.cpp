@@ -121,7 +121,7 @@ typedef struct {
 #define L2CAP_LE_DEFAULT_MPS 230
 #define L2CAP_LE_MAX_CREDIT 65535
 #define L2CAP_LE_DEFAULT_CREDIT 1
-
+#define LE_CHAR_MAX_LEN_VAL 512
 
 /************************************************************************************
 **  Local type definitions
@@ -1081,7 +1081,7 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
             printf("%s:: Invalid attribute value length for long char/desc \n", __FUNCTION__);
             exec_write_status = invalid_attribute_value_len;
         }
-        if(offset > len_long_char)
+        else if((offset > len_long_char) || ((curr_char_val_len > 0) && (offset > curr_char_val_len)))
         {
             printf("%s:: Invalid offset for long char/desc \n", __FUNCTION__);
             exec_write_status = invalid_offset;
@@ -1569,12 +1569,16 @@ void do_dut_mode_configure(char *p);
 void do_le_test_mode(char *p);
 void do_cleanup(char *p);
 void do_le_client_register(char *p);
+void do_le_client_register_ext(char *p);
 void do_le_client_deregister(char *p);
+void do_le_client_deregister_ext(char *p);
 void do_le_client_connect (char *p);
+void do_le_client_connect_ext (char *p);
 void do_le_client_refresh (char *p);
 void do_le_conn_param_update(char *p);
 void do_le_client_connect_auto (char *p);
 void do_le_client_disconnect (char *p);
+void do_le_client_disconnect_ext (char *p);
 void do_le_client_scan_start (char *p);
 void do_le_client_scan_stop (char *p);
 void do_le_client_set_adv_data(char *p);
@@ -1590,11 +1594,16 @@ void do_le_client_write(char *p);
 void do_le_execute_write(char *p);
 void do_le_set_idle_timeout(char *p);
 void do_le_server_register(char *p);
+void do_le_server_register_ext(char *p);
 void do_le_server_deregister(char *p);
+void do_le_server_deregister_ext(char *p);
 void do_le_server_add_service(char *p);
+void do_le_server_add_custom_service(char *p);
 void do_le_server_connect (char *p);
+void do_le_server_connect_ext(char *p);
 void do_le_server_connect_auto (char *p);
 void do_le_server_disconnect (char *p);
+void do_le_server_disconnect_ext (char *p);
 void do_le_server_send_indication(char *p);
 void do_smp_init(char *p);
 void do_smp_pair(char *p);
@@ -1603,6 +1612,7 @@ void do_smp_security_grant(char *p);
 void do_smp_passkey_reply(char *p);
 void do_smp_encrypt(char *p);
 void do_le_gap_conn_param_update(char *p);
+void do_le_set_char_len(char *p);
 void do_le_gap_attr_init(char *p);
 void do_pairing(char *p);
 void do_l2cap_send_data_cid(char *p);
@@ -1635,12 +1645,16 @@ const t_cmd console_cmd_list[] =
     { "disable", do_disable, ":: disables bluetooth", 0 },
     { "dut_mode_configure", do_dut_mode_configure, ":: DUT mode - 1 to enter,0 to exit", 0 },
     { "c_register", do_le_client_register, "::UUID: 1<1111..> 2<12323..> 3<321111..>", 0 },
+    { "c_register_ext", do_le_client_register_ext, "::EATTSupport <0 or 1>, UUID: 1<1111..> 2<12323..> 3<321111..>", 0 },
     { "c_deregister", do_le_client_deregister, "::UUID: 1<1111..> 2<12323..> 3<321111..>", 0 },
+    { "c_deregister_ext", do_le_client_deregister_ext, "::clientIf ", 0 },
     { "c_connect", do_le_client_connect, ":: transport-type<0,1...> , BdAddr<00112233445566>", 0 },
+    { "c_connect_ext", do_le_client_connect_ext, ":: transport-type<0,1...> , connId, BdAddr<00112233445566>", 0 },
     { "c_refresh", do_le_client_refresh, ":: BdAddr<00112233445566>", 0 },
     { "c_conn_param_update", do_le_conn_param_update, ":: min_interval(hex), max_interval(hex), latency(hex), timeout(hex), BdAddr<00112233445566>", 0 },
     { "c_connect_auto", do_le_client_connect_auto, ":: transport-type<0,1...> , BdAddr<00112233445566>", 0 },
     { "c_disconnect", do_le_client_disconnect, ":: transport-type<0,1...>, BdAddr<00112233445566>", 0 },
+    { "c_disconnect_ext", do_le_client_disconnect_ext, "::connId, transport-type<0,1...>, BdAddr<00112233445566>", 0 },
     { "c_configureMTU", do_le_client_configureMTU, ":: int mtu_size", 0 },
     { "c_discover", do_le_client_discover, "type(1-PrimaryService, 2-PrimaryService using UUID, 3-Included Service, 4-Characteristic, 5-Characteristic Descriptor) \
                                             \n\t s.handle(hex) e.handle(hex) UUIDLen(16/32/128) UUID(hex)", 0 },
@@ -1665,12 +1679,16 @@ const t_cmd console_cmd_list[] =
     { "c_set_idle_timeout", do_le_set_idle_timeout, "bd_addr, time_out(int)", 0 },
     { "c_gap_attr_init", do_le_gap_attr_init, "::", 0 },
     { "c_gap_conn_param_update", do_le_gap_conn_param_update, "::", 0 },
-
+    { "c_set_char_len", do_le_set_char_len, ":: <Default value: 512>", 0},
     { "s_register", do_le_server_register, "::UUID: 1<1111..> 2<12323..> 3<321111..>", 0 },
+    { "s_register_ext", do_le_server_register_ext, "::UUID: 1<1111..> 2<12323..> 3<321111..>, EATTSupport <0 or 1>", 0 },
     { "s_connect", do_le_server_connect, ":: transport, BdAddr<00112233445566>", 0 },
+    { "s_connect_ext", do_le_server_connect_ext, ":: serverIf, transport, BdAddr<00112233445566>", 0 },
     { "s_connect_auto", do_le_server_connect_auto, ":: BdAddr<00112233445566>", 0 },
     { "s_disconnect", do_le_server_disconnect, ":: transport, BdAddr<00112233445566>", 0 },
+    { "s_disconnect_ext", do_le_server_disconnect_ext, ":: serverIf, transport, BdAddr<00112233445566>", 0 },
     { "s_add_service", do_le_server_add_service, "::", 0 },
+    { "s_add_custom_service", do_le_server_add_custom_service, "::UUID length: 2, 4 or 16, UUID<1856>", 0 },
     { "s_send_indication", do_le_server_send_indication, "::handle(hex), confirm (1 for indication, 0 for notification)", 0 },
 
     { "pair", do_pairing, ":: BdAddr<00112233445566>", 0 },
@@ -2430,35 +2448,32 @@ void do_cleanup(char *p)
     bdt_cleanup();
 }
 
-
-void do_le_client_register(char *p)
+void do_le_cl_register(int idx)
 {
-    bt_status_t        Ret;
-    int Idx;
+    bt_status_t Ret;
     Uuid uuid;
     Uuid bt_uuid;
     bool is_valid = false;
 
-    skip_blanks(&p);
-    Idx = atoi(p);
-
-    switch(Idx)
+    switch (idx)
     {
-    case 1:
-        uuid = Uuid::FromString("0000A00C-0000-0000-01234-56789ABCDEF", &is_valid);//0000A00C-0000-0000-0123-456789ABCDEF
-        bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid); //0000A00C-0000-0000-0123-456789ABCDEF
-        break;
-    case 2:
-        uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF
-        bt_uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF*/
-        break;
-    default:
-        printf("%s:: ERROR: no matching uuid \n", __FUNCTION__);
-        return;
+        case 1:
+            uuid = Uuid::FromString("0000A00C-0000-0000-01234-56789ABCDEF", &is_valid);//0000A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid); //0000A00C-0000-0000-0123-456789ABCDEF
+            break;
+        case 2:
+            uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF*/
+            break;
+        default:
+            printf("%s:: ERROR: no matching uuid \n", __FUNCTION__);
+            return;
     }
-    if(Btif_gatt_layer)
+    if (Btif_gatt_layer)
     {
+
         Ret = sGattIfaceScan->client->register_client(bt_uuid);
+
         printf("%s:: ret value %d\n", __FUNCTION__,Ret);
     }
     else
@@ -2469,43 +2484,105 @@ void do_le_client_register(char *p)
     }
 }
 
-void do_le_client_deregister(char *p)
+void do_le_client_register(char *p)
 {
     bt_status_t        Ret;
+    int idx;
+    bool is_valid = false;
+
+    skip_blanks(&p);
+    idx = atoi(p);
+    printf("%s:: Idx :%d \n", __FUNCTION__, idx);
+
+    do_le_cl_register(idx);
+}
+
+void do_le_client_register_ext(char *p)
+{
+    bt_status_t        Ret;
+    int idx;
+    Uuid uuid;
+    Uuid bt_uuid;
+    bool is_valid = false;
+
+    skip_blanks(&p);
+
+    idx = atoi(p);
+    printf("%s:: Idx :%d \n", __FUNCTION__, idx);
+
+    do_le_cl_register(idx);
+}
+
+void do_le_cl_deregister(int client_if, bool is_ext)
+{
+    bt_status_t Ret;
 
     if(Btif_gatt_layer)
     {
-        if(0 == g_client_if_scan)
-        {
-            printf("%s:: ERROR: no application registered\n", __FUNCTION__);
-            return;
+        if (is_ext) {
+            if(0 == client_if)
+            {
+                printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+                return;
+            }
+            Ret = sGattIfaceScan->client->unregister_client(client_if);
         }
-        Ret = sGattIfaceScan->client->unregister_client(g_client_if_scan);
+        else {
+            if(0 == g_client_if_scan)
+            {
+                printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+                return;
+            }
+            Ret = sGattIfaceScan->client->unregister_client(g_client_if_scan);
+        }
         printf("%s:: Ret=%d\n", __FUNCTION__, Ret);
     }
     else
     {
-        if(0 == g_client_if)
-        {
-            printf("%s:: ERROR: no application registered\n", __FUNCTION__);
-            return;
+        if (is_ext) {
+            if(0 == client_if)
+            {
+                printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+                return;
+            }
+            sGattInterface->Deregister(client_if);
         }
-        sGattInterface->Deregister(g_client_if);
+        else {
+            if(0 == g_client_if)
+            {
+                printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+                return;
+            }
+            sGattInterface->Deregister(g_client_if);
+        }
     }
 }
 
-void do_le_client_connect (char *p)
+void do_le_client_deregister(char *p)
 {
-    bool        Ret = false;
-    RawAddress  bd_addr = {{0}};
-    int transport = BT_TRANSPORT_BR_EDR;
-    transport = get_int(&p, -1);
-    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+    do_le_cl_deregister(g_client_if_scan, false);
+}
 
+void do_le_client_deregister_ext(char *p)
+{
+    bt_status_t        Ret;
+    int client_if = get_int(&p, 0);
+
+    do_le_cl_deregister(client_if, true);
+}
+
+void do_le_send_connect_req(int client_if, RawAddress bd_addr, int transport, bool is_ext)
+{
+    bool Ret = false;
+
+    printf("%s:: client_if=%d \n", __FUNCTION__, client_if);
     if(Btif_gatt_layer)
     {
         //TODO need to add phy parameter as 0x07 for connection to all types of Phys
-        Ret = sGattIfaceScan->client->connect(g_client_if_scan, bd_addr, TRUE, transport, FALSE, 0x01);
+        if (is_ext)
+            Ret = sGattIfaceScan->client->connect(client_if, bd_addr, TRUE, transport, FALSE, 0x01);
+        else
+            Ret = sGattIfaceScan->client->connect(g_client_if_scan, bd_addr, TRUE, transport, FALSE, 0x01);
     }
     else if(transport == BT_TRANSPORT_BR_EDR) {
         //Outgoing Connection
@@ -2522,9 +2599,35 @@ void do_le_client_connect (char *p)
     }
     else
     {
-        Ret = sGattInterface->Connect(g_client_if, bd_addr, TRUE, transport);
+        if (is_ext)
+            Ret = sGattInterface->Connect(client_if, bd_addr, TRUE, transport);
+        else
+            Ret = sGattInterface->Connect(g_client_if, bd_addr, TRUE, transport);
     }
     printf("%s:: Ret=%d \n", __FUNCTION__, Ret);
+}
+
+void do_le_client_connect (char *p)
+{
+    RawAddress  bd_addr = {{0}};
+    int transport = BT_TRANSPORT_BR_EDR;
+    transport = get_int(&p, -1);
+    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+
+    do_le_send_connect_req(g_client_if_scan, bd_addr, transport, false);
+}
+
+void do_le_client_connect_ext (char *p)
+{
+    RawAddress  bd_addr = {{0}};
+    int transport = BT_TRANSPORT_BR_EDR;
+    int client_if = 0;
+
+    transport = get_int(&p, -1);
+    client_if = get_int(&p, 0);
+    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+
+    do_le_send_connect_req(client_if, bd_addr, transport, true);
 }
 
 void do_le_client_refresh (char *p)
@@ -2579,29 +2682,49 @@ void do_le_client_connect_auto (char *p)
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
 }
 
-
-void do_le_client_disconnect (char *p)
+void do_le_cl_disconnect (int conn_id, bool is_ext, char *p)
 {
-    int        Ret = -1;
+    int Ret = -1;
     bool return_status;
     RawAddress bd_addr = {{0}};
     int transport = BT_TRANSPORT_BR_EDR;
     transport = get_int(&p, -1);
     if(FALSE == GetBdAddr(p, &bd_addr))    return;
 
+    printf("%s:: conn_id=%d \n", __FUNCTION__,conn_id);
     if(Btif_gatt_layer)
     {
-        Ret = sGattIfaceScan->client->disconnect(g_client_if_scan, bd_addr, g_conn_id);
+        if (is_ext) {
+            printf("%s:: is_ext =%d, conn_id=%d \n", __FUNCTION__,is_ext, conn_id);
+            Ret = sGattIfaceScan->client->disconnect(conn_id, bd_addr, conn_id);
+        }
+        else
+            Ret = sGattIfaceScan->client->disconnect(g_client_if_scan, bd_addr, g_conn_id);
     }
     else if(transport == BT_TRANSPORT_BR_EDR)
     {
-        return_status = sL2capInterface->DisconnectReq(g_lcid);
-    }
-    else
+       return_status = sL2capInterface->DisconnectReq(g_lcid);
+   }
+   else
     {
-        Ret = sGattInterface->Disconnect(g_conn_id);
+        if (is_ext)
+            Ret = sGattInterface->Disconnect(conn_id);
+        else
+            Ret = sGattInterface->Disconnect(g_conn_id);
     }
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
+}
+
+void do_le_client_disconnect (char *p)
+{
+   do_le_cl_disconnect(g_client_if_scan, false, p);
+}
+
+void do_le_client_disconnect_ext (char *p)
+{
+    int conn_id = get_int(&p, 0);
+    printf("%s:: conn_id=%d \n", __FUNCTION__,conn_id);
+    do_le_cl_disconnect(conn_id, true, p);
 }
 
 void do_le_client_scan_start (char *p)
@@ -2963,28 +3086,39 @@ void do_le_set_idle_timeout(char *p)
 /*******************************************************************************
  ** GATT SERVER API commands
  *******************************************************************************/
-void do_le_server_register(char *p)
+
+void do_le_sr_register(int idx)
 {
-    bt_status_t        Ret;
+    bt_status_t Ret;
     bool is_valid = false;
-    int Idx;
     Uuid uuid;
     Uuid bt_uuid;
-    skip_blanks(&p);
-    Idx = atoi(p);
-    switch(Idx)
+
+    switch(idx)
     {
-    case 1:
-        uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid);//0000A00C-0000-0000-0123-456789ABCDEF
-        bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid); //0000A00C-0000-0000-0123-456789ABCDEF
-        break;
-    case 2:
-        uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF
-        bt_uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF*/
-        break;
-    default:
-        printf("%s:: ERROR: no matching uuid \n", __FUNCTION__);
-        return;
+        case 1:
+            uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid);//0000A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid); //0000A00C-0000-0000-0123-456789ABCDEF
+            break;
+        case 2:
+            uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF*/
+            break;
+        case 3:
+            uuid = Uuid::FromString("2222A00C-0000-0000-0123-456789ABCDEF", &is_valid);//2222A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("2222A00C-0000-0000-0123-456789ABCDEF", &is_valid);//2222A00C-0000-0000-0123-456789ABCDEF*/
+            break;
+        case 4:
+            uuid = Uuid::FromString("3322A00C-0000-0000-0123-456789ABCDEF", &is_valid);//3322A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("3322A00C-0000-0000-0123-456789ABCDEF", &is_valid);//33322A00C-0000-0000-0123-456789ABCDEF*/
+            break;
+        case 5:
+            uuid = Uuid::FromString("4422A00C-0000-0000-0123-456789ABCDEF", &is_valid);//4422A00C-0000-0000-0123-456789ABCDEF
+            bt_uuid = Uuid::FromString("4422A00C-0000-0000-0123-456789ABCDEF", &is_valid);//4422A00C-0000-0000-0123-456789ABCDEF*/
+            break;
+        default:
+            printf("%s:: ERROR: no matching uuid \n", __FUNCTION__);
+            return;
     }
 
     if(Btif_gatt_layer)
@@ -2999,17 +3133,71 @@ void do_le_server_register(char *p)
     }
 }
 
-void do_le_server_deregister(char *p)
+void do_le_server_register(char *p)
+{
+    bt_status_t Ret;
+    bool is_valid = false;
+    int idx;
+
+    skip_blanks(&p);
+    idx = atoi(p);
+
+    do_le_sr_register(idx);
+}
+
+void do_le_server_register_ext(char *p)
 {
     bt_status_t        Ret;
-    if(0 == g_server_if)
-    {
-        printf("%s:: ERROR: no application registered\n", __FUNCTION__);
-        return;
+    bool is_valid = false;
+    int idx;
+    Uuid uuid;
+    Uuid bt_uuid;
+
+    skip_blanks(&p);
+
+    skip_blanks(&p);
+    idx = atoi(p);
+    printf("%s:: Idx :%d \n", __FUNCTION__, idx);
+
+    do_le_sr_register(idx);
+}
+
+void do_le_sr_deregister(int server_if, bool is_ext)
+{
+    bt_status_t  Ret;
+
+    if (is_ext) {
+        if(0 == server_if)
+        {
+            printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+            return;
+        }
+        sGattInterface->Deregister(server_if);
+        Ret = sGattIfaceScan->server->unregister_server(server_if);
+        printf("%s::Ret = %d\n", __FUNCTION__,Ret);
     }
-    sGattInterface->Deregister(g_server_if);
-    Ret = sGattIfaceScan->server->unregister_server(g_server_if_scan);
-    printf("%s::Ret = %d\n", __FUNCTION__,Ret);
+    else {
+        if(0 == g_server_if)
+        {
+            printf("%s:: ERROR: no application registered\n", __FUNCTION__);
+            return;
+        }
+        sGattInterface->Deregister(g_server_if);
+        Ret = sGattIfaceScan->server->unregister_server(g_server_if_scan);
+        printf("%s::Ret = %d\n", __FUNCTION__,Ret);
+    }
+}
+
+void do_le_server_deregister(char *p)
+{
+    do_le_sr_deregister(g_server_if, false);
+}
+
+void do_le_server_deregister_ext(char *p)
+{
+    int server_if = get_int(&p, 0);
+
+    do_le_sr_deregister(server_if, true);
 }
 
 void do_le_server_add_service(char *p)
@@ -3034,16 +3222,49 @@ void do_le_server_add_service(char *p)
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
 }
 
-void do_le_server_connect (char *p)
+void do_le_server_add_custom_service(char *p)
 {
-    bool        Ret;
+    int  Ret = 0;
+    bool is_valid = false;
+    int  uuid_len = 0, uuid_len_bytes = 0;
+
+    uuid_len = get_int(&p, -1); //arg1 - Size in bytes for the uuid (2, 4, or 16)
+    std::string uuid_str = get_uuid_str(&p, uuid_len_bytes); //arg2 service uuid
+    printf("%s:: uuid_str=%s \n", __FUNCTION__, uuid_str.c_str());
+
+    std::vector<btgatt_db_element_t> service;
+    //1st service
+    btgatt_db_element_t svc1 = {0};
+    svc1.uuid = Uuid::FromString(uuid_str, &is_valid);
+    svc1.type = BTGATT_DB_PRIMARY_SERVICE;
+    service.push_back(svc1);
+
+    Ret = sGattIfaceScan->server->add_service(g_server_if_scan, service);
+    printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
+}
+
+void do_le_sr_connect (int server_if, char *p)
+{
+    bool Ret;
     RawAddress bd_addr = {{0}};
     int transport = BT_TRANSPORT_BR_EDR;
     transport = get_int(&p, -1);
     if(FALSE == GetBdAddr(p, &bd_addr))    return;
-    Ret = sGattIfaceScan->server->connect(g_server_if_scan, bd_addr, TRUE, transport);
+    Ret = sGattIfaceScan->server->connect(server_if, bd_addr, TRUE, transport);
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
 }
+
+void do_le_server_connect (char *p)
+{
+    do_le_sr_connect(g_server_if_scan, p);
+}
+
+void do_le_server_connect_ext (char *p)
+{
+    int server_if = get_int(&p, 0);
+    do_le_sr_connect(server_if, p);
+}
+
 
 void do_le_server_connect_auto (char *p)
 {
@@ -3054,16 +3275,29 @@ void do_le_server_connect_auto (char *p)
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
 }
 
-
-void do_le_server_disconnect (char *p)
+void do_le_sr_disconnect (int server_if, bool is_ext, char *p)
 {
     bt_status_t        Ret;
     RawAddress bd_addr = {{0}};
     int transport = BT_TRANSPORT_BR_EDR;
     transport = get_int(&p, -1);
     if(FALSE == GetBdAddr(p, &bd_addr))    return;
-    Ret = sGattIfaceScan->server->disconnect(g_server_if_scan, bd_addr, g_conn_id);
+    if (is_ext)
+        Ret = sGattIfaceScan->server->disconnect(server_if, bd_addr, server_if);
+    else
+        Ret = sGattIfaceScan->server->disconnect(g_server_if_scan, bd_addr, g_conn_id);
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
+}
+
+void do_le_server_disconnect (char *p)
+{
+    do_le_sr_disconnect(g_server_if_scan, false, p);
+}
+
+void do_le_server_disconnect_ext (char *p)
+{
+    int server_if = get_int(&p, 0);
+    do_le_sr_disconnect(server_if, true, p);
 }
 
 void do_le_server_send_indication (char *p)
@@ -3616,6 +3850,17 @@ void do_le_gap_attr_init(char *p)
     sGapInterface->Gap_AttrInit();
     printf("%s:: GAP Initialization\n", __FUNCTION__);
 
+}
+void do_le_set_char_len(char *p)
+{
+     int len;
+     len = get_int(&p, -1); //arg1
+     if (len > LE_CHAR_MAX_LEN_VAL || len < 1) {
+       printf("Invalid length. Enter 1 to 512\n");
+     } else {
+       len_long_char = len;
+       printf("long characteristic length is %d\n", len_long_char);
+     }
 }
 /*
 void do_le_gap_set_disc(char *p)

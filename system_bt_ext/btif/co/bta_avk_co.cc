@@ -27,6 +27,7 @@
  *  BTIF.
  *
  ******************************************************************************/
+#include "osi/include/properties.h"
 
 #include "string.h"
 #include "a2dp_api.h"
@@ -321,7 +322,7 @@ uint8_t codec_initialized[BTIF_SV_AVK_AA_SEP_INDEX];
 bool is_codec_enabled(uint8_t codec_index);
 extern bool is_a2dp_split_sink_enabled();
 extern pthread_mutex_t sink_codec_q_lock;
-pthread_mutex_t split_sink_codec_q_lock;
+extern pthread_mutex_t split_sink_codec_q_lock;
 
 uint8_t bta_avk_get_current_codec()
 {
@@ -500,8 +501,10 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
         return FALSE;
     if((codec_type == BTA_AVK_CODEC_M24) && (!is_codec_enabled(BTIF_SV_AVK_AA_AAC_INDEX)))
         return FALSE;
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     if((codec_type == BTA_AVK_CODEC_M12) && (!is_codec_enabled(BTIF_SV_AVK_AA_MP3_INDEX)))
         return FALSE;
+#endif/* MP3_DECODER_INCLUDED */
     if(codec_type == A2D_NON_A2DP_MEDIA_CT)
     {
         if ((A2D_VENDOR_CODEC_APTX_CL == get_vendor_specific_codec(p_codec_info)) &&
@@ -1458,6 +1461,37 @@ uint8_t bta_avk_co_audio_getconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type
 }
 
 /*******************************************************************************
+*
+* Function         A2DP_IsPeerCodecValid
+*
+* Description      This function checks if requested codec configuration is
+*                  valid or not
+*
+* Returns          A2DP_SUCCESS if codec config supported, Error code otherwise
+*
+******************************************************************************/
+uint8_t  A2DP_IsPeerCodecValid(tBTA_AVK_CODEC codec_type, uint8_t *p_codec_info) {
+  uint8_t status = A2DP_SUCCESS;
+
+  switch (codec_type) {
+          case A2DP_MEDIA_CT_SBC :
+                  status = bta_avk_sbc_cfg_matches_cap(p_codec_info,
+                  (tA2D_SBC_CIE *)&bta_avk_co_sbc_caps);
+                  break;
+          case A2DP_MEDIA_CT_AAC :
+                  status = bta_avk_aac_cfg_matches_cap(p_codec_info,
+                  (tA2D_AAC_CIE *)&bta_avk_co_aac_caps);
+                  break;
+          case A2DP_MEDIA_CT_NON_A2DP :
+                  status = A2DP_NS_CODEC_TYPE;
+                  break;
+          default :
+                  status = A2DP_BAD_CODEC_TYPE;
+                  break;
+  }
+  return status;
+}
+/*******************************************************************************
  **
  ** Function         bta_avk_co_audio_setconfig
  **
@@ -1485,6 +1519,17 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
             p_codec_info[4], p_codec_info[5], p_codec_info[6]);
     APPL_TRACE_DEBUG("num_protect:0x%02x protect_info:0x%02x%02x%02x",
         num_protect, p_protect_info[0], p_protect_info[1], p_protect_info[2]);
+
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    osi_property_get("vendor.bt.pts.certification", value, "false");
+    if (!(strcmp(value,"true"))) {
+        status = A2DP_IsPeerCodecValid(codec_type, p_codec_info);
+        if (status != A2DP_SUCCESS) {
+            bta_avk_ci_setconfig(hndl, status, category, 0, NULL, FALSE,
+            avdt_handle);
+            return;
+        }
+    }
 
     /* Retrieve the peer info */
     p_peer = bta_avk_co_get_peer(hndl);
@@ -1522,8 +1567,13 @@ void bta_avk_co_audio_setconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type,
             }
         } else {
             APPL_TRACE_ERROR("bta_av_co_audio_setconfig wrong CP configuration");
-            status = A2DP_BAD_CP_TYPE;
-            category = AVDT_ASC_PROTECT;
+      if (osi_property_get("vendor.bt.pts.certfication_cp_format", value, "false") &&
+         (strcmp(value, "true") == 0)) {
+         status = A2DP_BAD_CP_FORMAT;
+      } else {
+         status = A2DP_BAD_CP_TYPE;
+      }
+       category = AVDT_ASC_PROTECT;
         }
     }
     if (status == A2DP_SUCCESS)

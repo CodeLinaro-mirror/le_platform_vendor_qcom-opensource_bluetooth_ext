@@ -36,7 +36,7 @@
 #include <string.h>
 
 #include "osi/include/properties.h"
-
+#include "device/include/interop.h"
 #include "bta_avk_int.h"
 #include "avdt_api.h"
 #include "utl.h"
@@ -96,7 +96,9 @@ A2DP_SINK_OFFLOAD_PARAM offload_sink_start;
 typedef union {
     tA2D_SBC_CIE sbc_caps;
     tA2D_AAC_CIE aac_caps;
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     tA2D_MP3_CIE mp3_caps;
+#endif
     tA2D_APTX_CIE aptx_caps;
     tA2D_APTX_HD_CIE aptx_hd_caps;
     tA2DP_AVK_APTX_AD_CIE aptx_ad_caps;
@@ -2202,14 +2204,42 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 {
     tBTA_AVK_REJECT reject;
     uint8_t   avdt_handle = p_data->ci_setconfig.avdt_handle;
+    uint8_t error;
+    char value[PROPERTY_VALUE_MAX] = {'\0'};
+    osi_property_get("vendor.bt.pts.certification", value, "false");
+    if (!(strcmp(value,"true"))) {
+        error = p_data->ci_setconfig.err_code;
+    } else {
+        error = AVDT_ERR_UNSUP_CFG;
+    }
 
     bta_avk_adjust_seps_idx(p_scb, avdt_handle);
     APPL_TRACE_DEBUG("bta_avk_setconfig_rej: sep_idx: %d",p_scb->sep_idx);
-    AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, AVDT_ERR_UNSUP_CFG, 0);
+    AVDT_ConfigRsp(p_scb->avdt_handle, p_scb->avdt_label, error, 0);
 
     reject.bd_addr = p_data->str_msg.bd_addr;
     reject.hndl = p_scb->hndl;
     (*bta_avk_cb.p_cback)(BTA_AVK_REJECT_EVT, (tBTA_AVK *) &reject);
+}
+
+/****************************************************************************
+ * **
+ * ** Function         dev_blacklisted_for_avdtp_discover
+ * **
+ * ** Description      This function is called to check if Remote device
+ * **                  is blacklisted for avdtp discover.
+ * **
+ * ** Returns          BOOLEAN
+ * **
+ * *******************************************************************************/
+bool inline dev_blacklisted_for_avdtp_discover (RawAddress addr)
+{
+    if (interop_match_addr(INTEROP_DISABLE_AVDTP_DISCOVER_COMMAND, &addr)) {
+        APPL_TRACE_ERROR("%s: device is blacklisted for avdtp_discover", __func__);
+        AVDT_UpdateServiceBusyState(false);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 /*******************************************************************************
@@ -2223,6 +2253,9 @@ void bta_avk_setconfig_rej (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 *******************************************************************************/
 void bta_avk_discover_req (tBTA_AVK_SCB *p_scb, tBTA_AVK_DATA *p_data)
 {
+    // do not send avdtp discover request if device blacklisted
+    if(dev_blacklisted_for_avdtp_discover(p_scb->peer_addr)) return;
+
     /* send avdtp discover request */
 
     AVDT_DiscoverReq(p_scb->peer_addr, p_scb->sep_info, BTA_AVK_NUM_SEPS, bta_avk_dt_cback[p_scb->hdi]);

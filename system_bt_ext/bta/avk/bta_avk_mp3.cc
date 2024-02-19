@@ -34,7 +34,7 @@
 #include "bta_avk_mp3.h"
 #include "utl.h"
 
-
+#if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         bta_avk_mp3_cfg_matches_cap
@@ -138,4 +138,4 @@ uint8_t bta_avk_mp3_cfg_in_cap(uint8_t *p_cfg, tA2D_MP3_CIE *p_cap)
     APPL_TRACE_DEBUG("bta_av_mp3_cfg_in_cap return  %d", status);
     return status;
 }
-
+#endif/* MP3_DECODER_INCLUDED */
