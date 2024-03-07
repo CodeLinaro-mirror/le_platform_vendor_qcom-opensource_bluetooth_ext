@@ -48,6 +48,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /************************************************************************************
@@ -66,6 +69,11 @@
 #define LOG_TAG "bt_btif_vendor"
 
 #include "osi/include/properties.h"
+#ifdef SUPPORT_ESL_AP
+#include <hardware/hardware.h>
+#include <hardware/bluetooth.h>
+#include <hardware/bt_gatt_client.h>
+#endif
 #include "bt_utils.h"
 #include "btif_common.h"
 #include "btif_util.h"
@@ -78,6 +86,12 @@
 #include "profile_config.h"
 #include "btif_tws_plus.h"
 #include "btif_api.h"
+#ifdef SUPPORT_ESL_AP
+#include "bta_closure_api.h"
+#include "device/include/controller.h"
+
+using base::Bind;
+#endif
 
 #if TEST_APP_INTERFACE == TRUE
 #include <bt_testapp.h>
@@ -124,6 +138,16 @@ extern const btmcap_interface_t *btif_mcap_get_interface(void);
 extern const btgatt_test_interface_t *btif_gatt_test_get_interface(void);
 extern const btsmp_interface_t *btif_smp_get_interface(void);
 extern const btgap_interface_t *btif_gap_get_interface(void);
+#ifdef SUPPORT_ESL_AP
+extern const BleTestScannerInterface* get_ble_test_scanner_instance(void);
+extern const btgatt_client_interface_t *bt_btif_vendor_gattc_get_interface(void);
+#endif
+#endif
+
+#ifdef SUPPORT_ESL_AP
+extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback);
+vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
+btgatt_client_callbacks_t  *vendor_gattc_callback = NULL;
 #endif
 
 /*******************************************************************************
@@ -266,6 +290,44 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
     return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback);
 }
 
+#ifdef SUPPORT_ESL_AP
+static hci_event_cb vsc_cb;
+static bool hci_event_cb_needed;
+
+static void btif_vendor_hci_event_callback_entry ( tBTM_RAW_CMPL *p)
+{
+  BTIF_TRACE_DEBUG("%s, callback:%d, %d", __FUNCTION__, hci_event_cb_needed, vsc_cb.is_null());
+  if((p != NULL) && hci_event_cb_needed) {
+    vsc_cb.Run(p->event_code, p->p_param_buf, p->param_len);
+  }
+}
+
+int hci_cmd_send_with_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb)
+{
+    BTIF_TRACE_DEBUG("hci_cmd_send_with_cb: opcode=%d", opcode);
+    if (opcode != 0) {
+        vsc_cb = cb;
+        hci_event_cb_needed = true;
+        return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback_entry);
+    }
+    else {
+        hci_event_cb_needed = false;
+        return HCI_SUCCESS;
+    }
+}
+
+int hci_clear_white_list(void)
+{
+  //connection_manager::reset(true);
+  return HCI_SUCCESS;
+}
+
+int hci_get_white_list_size(void)
+{
+    return controller_get_interface()->get_ble_white_list_size();
+}
+#endif
+
 static void set_wifi_state(bool status)
 {
     LOG_INFO(LOG_TAG,"setWifiState :%d", status);
@@ -339,6 +401,71 @@ bt_status_t voip_network_type_wifi(bthf_voip_state_t isVoipStarted,
     return BT_STATUS_SUCCESS;
 }
 
+#ifdef SUPPORT_ESL_AP
+int register_vendor_acl_callback(vendor_acl_state_changed_callback cb)
+{
+    vendor_acl_state_changed_cb = cb;
+    return 0;
+}
+
+int register_vendor_gattc_callback(void *cb)
+{
+    vendor_gattc_callback = (btgatt_client_callbacks_t*) cb;
+    return 0;
+}
+
+vendor_vs_evt_callback vs_event_cb = NULL;
+void hcif_vs_event_callback(uint8_t* p, uint8_t len)
+{
+    BTIF_TRACE_WARNING("%s : enter, len:%d, code:%x", __func__, len, p[0]);
+    if (vs_event_cb != NULL && len != 0) {
+        std::vector<uint8_t> vs_data(p, p+len);
+        do_in_jni_thread(Bind(vs_event_cb, std::move(vs_data)));
+    }
+}
+
+void register_vs_event_callback(vendor_vs_evt_callback p_cb) {
+    vs_event_cb = p_cb;
+}
+
+tBTM_SEC_CBACK *btm_sec_cb = NULL;
+void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
+                             void* p_ref_data, tBTM_STATUS result)
+{
+    BTIF_TRACE_WARNING("%s : enter, result:%d", __func__, result);
+    if (btm_sec_cb != NULL) {
+        do_in_jni_thread(Bind(btm_sec_cb, bd_addr, trasnport, p_ref_data, result));
+    }
+}
+
+void bta_startEncryption(RawAddress address, std::vector<uint8_t> rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback)
+{
+    BTM_StartEncryption(address, rand.data(), ediv, ltk, p_callback);
+}
+
+
+void start_ble_encryption(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback)
+{
+    btm_sec_cb = p_callback;
+    BT_OCTET16 ltk_val;
+    STREAM_TO_ARRAY(ltk_val, ltk, BT_OCTET16_LEN);
+    std::vector<uint8_t> rand_val(rand, rand + BT_OCTET8_LEN);
+    bta_startEncryption(address, std::move(rand_val), ediv, ltk_val, btm_sec_callback);
+    //do_in_bta_thread(FROM_HERE, Bind(bta_startEncryption, address, std::move(rand_val), ediv, ltk_val, btm_sec_callback));
+}
+
+void set_conn_scan_parameter_impl(uint32_t scan_interval, uint32_t scan_window) {
+
+    BTA_DmSetBleConnScanParams(scan_interval, scan_window);
+}
+
+bt_status_t set_conn_scan_parameter(uint32_t scan_interval, uint32_t scan_window) {
+//  CHECK_BTGATT_INIT();
+  return do_in_jni_thread(Bind(
+      base::IgnoreResult(&set_conn_scan_parameter_impl), scan_interval, scan_window));
+}
+#endif
+
 /*******************************************************************************
 **
 ** Function         get_testapp_interface
@@ -355,6 +482,9 @@ static const void* get_testapp_interface(int test_app_profile)
         return NULL;
     }
     ALOGI("get_testapp_interface %d", test_app_profile);
+#ifdef SUPPORT_ESL_AP
+    BTIF_TRACE_EVENT("%s %d", __FUNCTION__, test_app_profile);
+#endif
     switch(test_app_profile) {
         case TEST_APP_L2CAP:
             return btif_l2cap_get_interface();
@@ -368,6 +498,12 @@ static const void* get_testapp_interface(int test_app_profile)
            return btif_smp_get_interface();
         case TEST_APP_GAP:
            return btif_gap_get_interface();
+#ifdef SUPPORT_ESL_AP
+        case TEST_APP_SCANNER:
+           return get_ble_test_scanner_instance();
+        case TEST_APP_GATTC:
+           return bt_btif_vendor_gattc_get_interface();
+#endif
         default:
             return NULL;
     }
@@ -397,6 +533,16 @@ static const btvendor_interface_t btvendorInterface = {
     sizeof(btvendorInterface),
     init,
     hci_cmd_send,
+#ifdef SUPPORT_ESL_AP
+    hci_cmd_send_with_cb,
+    hci_clear_white_list,
+    hci_get_white_list_size,
+    register_vendor_acl_callback,
+    register_vendor_gattc_callback,
+    register_vs_event_callback,
+    start_ble_encryption,
+    set_conn_scan_parameter,
+#endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,
 #else
