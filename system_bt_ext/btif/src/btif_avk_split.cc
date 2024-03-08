@@ -3774,7 +3774,7 @@ static void send_codec_config_report(tBTA_AVK_MEDIA *p_data, RawAddress bd_addr 
 #if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
     tA2DP_AVK_APTX_AD_CIE aptx_ad_cie;
 #endif
-    btif_avk_config_req_t config_req;
+    btif_avk_config_req_t config_req = {0};
     int index = btif_avk_idx_by_bdaddr(&bd_addr);
     if (index >= btif_max_avk_clients)
     {

@@ -1869,7 +1869,7 @@ static void bte_avk_media_callback(tBTA_AVK_EVT event, tBTA_AVK_MEDIA *p_data, R
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
     tA2D_APTX_CIE aptx_cie;
 #endif
-    btif_avk_config_req_t config_req;
+    btif_avk_config_req_t config_req = {0};
     int index;
 
     if (event == BTA_AVK_MEDIA_DATA_EVT)/* Switch to BTIF_MEDIA context */
@@ -3037,6 +3037,7 @@ uint32_t btif_media_enque_sink_data(uint16_t codec_type, uint8_t *data, uint16_t
         if (index >= btif_max_avk_clients)
         {
             BTIF_TRACE_DEBUG("%s Invalid index for device", __FUNCTION__);
+            pthread_mutex_unlock(&sink_data_q_lock);
             return 0;
         }
         if(btif_avk_cb[index].avdt_sync == TRUE )
