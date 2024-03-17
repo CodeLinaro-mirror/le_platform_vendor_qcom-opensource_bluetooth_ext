@@ -34,7 +34,7 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
+#include <bsd/string.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -451,7 +451,7 @@ static int create_cmdjob(char *cmd)
     job_cmd = malloc(strlen(cmd)+1); /* freed in job handler */
     memset(job_cmd,0,strlen(cmd)+1);
     if (job_cmd) {
-        strncpy(job_cmd, cmd, sizeof(job_cmd));
+        strlcpy(job_cmd, cmd, sizeof(job_cmd));
         if (pthread_create(&thread_id, NULL,
                        (void*)cmdjob_handler, (void*)job_cmd)!=0)
             bdt_log("pthread_create");

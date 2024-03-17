@@ -32,9 +32,9 @@ cpp_sources = mcap_tool.cpp
 
 
 if USE_GST
-requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome
+requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd
 else
-requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome
+requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd
 endif
 
 
