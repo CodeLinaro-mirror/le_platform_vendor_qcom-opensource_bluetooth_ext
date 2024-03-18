@@ -61,7 +61,7 @@ typedef struct {
 
        int (*init)(const bt_interface_t* itf);
 
-       void (*deInit)(void);
+       int (*deInit)(void);
 
 #if 0
        bool (*bondStateChange_cb)(bt_status_t status,

@@ -102,6 +102,7 @@ typedef enum {
 typedef uint8_t tBTM_STATUS;
 typedef uint8_t tBT_TRANSPORT;
 using hci_event_cb = base::Callback<void(uint8_t /* event code */, uint8_t * buf, uint8_t /* len*/)>;
+using hci_status_cb = base::Callback<void(uint16_t /* opcode */, uint8_t * buf, uint16_t /* len*/)>;
 #endif
 
 typedef enum {
@@ -220,6 +221,8 @@ typedef struct {
 
 #ifdef SUPPORT_ESL_AP
     int (*hci_cmd_send_with_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb);
+
+    int (*hci_cmd_send_with_status_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_status_cb cb);
 
     int (*hci_clear_white_list)(void);
 
