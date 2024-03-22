@@ -34,7 +34,6 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <bsd/string.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <ctype.h>
