@@ -319,11 +319,11 @@ int hci_cmd_send_with_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_c
 static hci_status_cb vsc_status_cb;
 static bool hci_status_cb_needed;
 
-static void btif_vendor_hci_status_callback_entry ( tBTM_VSC_CMPL *p)
+static void btif_vendor_hci_status_callback_entry (tBTM_RAW_STATUS *p)
 {
   BTIF_TRACE_DEBUG("%s, callback:%d, %d", __FUNCTION__, hci_status_cb_needed, vsc_status_cb.is_null());
   if((p != NULL) && hci_status_cb_needed) {
-    vsc_status_cb.Run(p->opcode, p->p_param_buf, p->param_len);
+    vsc_status_cb.Run(p->opcode, p->status);
   }
 }
 
@@ -333,7 +333,7 @@ int hci_cmd_send_with_status_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_
     if (opcode != 0) {
         vsc_status_cb = cb;
         hci_status_cb_needed = true;
-        BTM_VendorSpecificCommand(opcode, len, buf, btif_vendor_hci_status_callback_entry);
+        BTM_Hci_Raw_Command_with_status_cb(opcode, len, buf, (void*)btif_vendor_hci_status_callback_entry);
         return HCI_SUCCESS;
     }
     else {
