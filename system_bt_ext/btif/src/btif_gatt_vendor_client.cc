@@ -1,39 +1,4 @@
 /*
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted (subject to the limitations in the
- * disclaimer below) provided that the following conditions are met:
- *
- *    * Redistributions of source code must retain the above copyright
- *      notice, this list of conditions and the following disclaimer.
- *
- *    * Redistributions in binary form must reproduce the above
- *      copyright notice, this list of conditions and the following
- *      disclaimer in the documentation and/or other materials provided
- *      with the distribution.
- *
- *    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
- *      contributors may be used to endorse or promote products derived
- *      from this software without specific prior written permission.
- *
- *  NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
- *  GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
- *  HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- *  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- *  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- *  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
- *
  *  Copyright (C) 2009-2014 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *  Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /*******************************************************************************
@@ -389,6 +357,80 @@ bt_status_t btif_gattc_open(int client_if, const RawAddress& bd_addr,
                                initiating_phys));
 }
 
+#ifdef SUPPORT_ESL_AP
+void btif_gattc_open_impl_v2(int client_if, uint8_t advertising_handle, uint8_t subevent,
+                          RawAddress address, bool is_direct,
+                          int transport_p, bool opportunistic,
+                          int initiating_phys) {
+  // Ensure device is in inquiry database
+  int addr_type = 0;
+  int device_type = 0;
+  tGATT_TRANSPORT transport = (tGATT_TRANSPORT)GATT_TRANSPORT_LE;
+
+  if (btif_get_address_type(address, &addr_type) &&
+      btif_get_device_type(address, &device_type) &&
+      device_type != BT_DEVICE_TYPE_BREDR) {
+    BTA_DmAddBleDevice(address, addr_type, device_type);
+  }
+
+  // Check for background connections
+  if (!is_direct) {
+    // Check for privacy 1.0 and 1.1 controller and do not start background
+    // connection if RPA offloading is not supported, since it will not
+    // connect after change of random address
+    if (!controller_get_interface()->supports_ble_privacy() &&
+        (addr_type == BLE_ADDR_RANDOM) && BTM_BLE_IS_RESOLVE_BDA(address)) {
+      tBTM_BLE_VSC_CB vnd_capabilities;
+      BTM_BleGetVendorCapabilities(&vnd_capabilities);
+      if (!vnd_capabilities.rpa_offloading) {
+        HAL_CBACK(vendor_gattc_callback, open_cb, 0, BT_STATUS_UNSUPPORTED,
+                  client_if, address);
+        return;
+      }
+    }
+    BTA_DmBleStartAutoConn();
+  }
+
+  // Determine transport
+  if (transport_p != GATT_TRANSPORT_AUTO) {
+    transport = transport_p;
+  } else {
+    switch (device_type) {
+      case BT_DEVICE_TYPE_BREDR:
+        transport = GATT_TRANSPORT_BR_EDR;
+        break;
+
+      case BT_DEVICE_TYPE_BLE:
+        transport = GATT_TRANSPORT_LE;
+        break;
+
+      case BT_DEVICE_TYPE_DUMO:
+        if (transport_p == GATT_TRANSPORT_LE)
+          transport = GATT_TRANSPORT_LE;
+        else
+          transport = GATT_TRANSPORT_BR_EDR;
+        break;
+    }
+  }
+
+  // Connect!
+  BTIF_TRACE_DEBUG("%s Transport=%d, device type=%d, phy=%d", __func__,
+                   transport, device_type, initiating_phys);
+  BTA_GATTC_Open_v2(client_if, advertising_handle, subevent, address, is_direct,
+                    transport, opportunistic, initiating_phys);
+}
+
+bt_status_t btif_gattc_open_v2(int client_if, uint8_t advertising_handle, uint8_t subevent,
+                            const RawAddress& bd_addr, bool is_direct, int transport,
+                            bool opportunistic, int initiating_phys) {
+  CHECK_BTGATT_INIT();
+  // Closure will own this value and free it.
+  return do_in_jni_thread(Bind(&btif_gattc_open_impl_v2, client_if, advertising_handle,
+                               subevent, bd_addr, is_direct,
+                               transport, opportunistic, initiating_phys));
+}
+#endif
+
 void btif_gattc_close_impl(int client_if, RawAddress address, int conn_id) {
   // Disconnect established connections
   if (conn_id != 0)
@@ -681,7 +723,11 @@ const btgatt_client_interface_t btgattVendorClientInterface = {
     btif_gattc_set_preferred_phy,
     btif_gattc_read_phy,
     NULL,
-    btif_gattc_get_gatt_db};
+    btif_gattc_get_gatt_db,
+#ifdef SUPPORT_ESL_AP
+    btif_gattc_open_v2,
+#endif
+};
 };  // namespace
 
 const btgatt_client_interface_t *bt_btif_vendor_gattc_get_interface(void)
