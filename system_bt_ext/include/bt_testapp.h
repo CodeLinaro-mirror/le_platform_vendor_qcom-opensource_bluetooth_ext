@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifdef TEST_APP_INTERFACE
@@ -38,6 +42,9 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <fcntl.h>
+#ifdef SUPPORT_ESL_AP
+#include <base/bind.h>
+#endif
 #include <sys/prctl.h>
 //#include <linux/capability.h>
 #include <arpa/inet.h>
@@ -81,8 +88,20 @@ typedef enum {
     TEST_APP_MCAP,
     TEST_APP_GATT,
     TEST_APP_GAP,
+#ifndef SUPPORT_ESL_AP
     TEST_APP_SMP
+#else
+    TEST_APP_SMP,
+    TEST_APP_SCANNER,
+    TEST_APP_GATTC
+#endif
 } test_app_profile;
+
+#ifdef SUPPORT_ESL_AP
+typedef void (*register_client_callback)(int status, int client_if, const bluetooth::Uuid& app_uuid);
+typedef void (*get_gatt_db_callback)(int conn_id, const btgatt_db_element_t* db, int count);
+#endif
+
 typedef struct {
 
     /** set to sizeof(Btl2capInterface) */
@@ -133,6 +152,9 @@ typedef struct {
                              uint16_t status, tL2CAP_LE_CFG_INFO *p_cfg);
     bool        (*LeFlowControl) (uint16_t lcid, uint16_t credits);
     void        (*LeFreeBuf)(BT_HDR *p_buf);
+#ifdef SUPPORT_ESL_AP
+    bool        (*GetPeerConfig) (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
+#endif
 } btl2cap_interface_t;
 
 typedef struct
@@ -252,6 +274,36 @@ typedef struct {
     bt_status_t (*connect)( RawAddress *bd_addr );
     void  (*cleanup)( void );
 } btrfcomm_interface_t;
+
+#ifdef SUPPORT_ESL_AP
+class BleTestScannerInterface {
+ public:
+  virtual ~BleTestScannerInterface() = default;
+
+  using Callback = base::Callback<void(uint8_t /* status */)>;
+  /** Callback for scan results */
+
+  using ScanResultCallback =
+      base::Callback<void(uint16_t /* event_type */, uint8_t /* addr_type */,
+                                     RawAddress * /* bda */, uint8_t /* primary_phy */,
+                                     uint8_t /* secondary_phy */,
+                                     uint8_t /* advertising_sid */, int8_t /* tx_power */,
+                                     int8_t /* rssi */, uint16_t /* periodic_adv_int */,
+                                     std::vector<uint8_t> /* adv_data */)>;
+
+
+
+  /** Sets the LE scan interval and window in units of N*0.625 msec */
+  virtual void SetScanParameters(int scan_phy, std::vector<uint32_t> scan_interval,
+                                 std::vector<uint32_t> scan_window, uint8_t scan_type,
+                                 Callback cb) = 0;
+
+  /** Start or stop LE device scanning */
+  virtual void ScanWithCb(bool start, ScanResultCallback cb) = 0;
+
+  virtual void GetScanStatus(base::Callback<void(bool, uint8_t)> cb) = 0;
+};
+#endif
 
 #endif
 

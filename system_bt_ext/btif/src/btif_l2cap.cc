@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include <stdio.h>
@@ -88,6 +92,9 @@ static bool L2cap_LE_ConnectRsp (RawAddress p_bd_addr, uint8_t id, uint16_t lcid
 //static bool L2cap_LE_ConnectRsp (RawAddress p_bd_addr, uint8_t id, uint16_t lcid, tL2CAP_LE_CFG_INFO *p_cfg);
 static bool L2cap_LE_FlowControl (uint16_t lcid, uint16_t credits);
 static void L2cap_LE_freebuf(BT_HDR *p_buf);
+#ifdef SUPPORT_ESL_AP
+static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
+#endif
 
 static const btl2cap_interface_t btl2capInterface = {
     sizeof(btl2cap_interface_t),
@@ -132,6 +139,9 @@ static const btl2cap_interface_t btl2capInterface = {
     L2cap_LE_ConnectRsp,
     L2cap_LE_FlowControl,
     L2cap_LE_freebuf,
+#ifdef SUPPORT_ESL_AP
+    L2cap_GetPeerConfig,
+#endif
 };
 
 const btl2cap_interface_t *btif_l2cap_get_interface(void)
@@ -273,6 +283,14 @@ static void L2cap_LE_freebuf (BT_HDR *p_buf)
 {
      osi_free(p_buf);
 }
+
+#ifdef SUPPORT_ESL_AP
+static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg)
+{
+    BTIF_TRACE_DEBUG("L2cap_LE_GetPeerConfig:: Invoked");
+    return L2CA_GET_PEER_COC_CONFIG (lcid, peer_cfg);
+}
+#endif
 
 static bt_status_t L2cap_LE_DeRegister (uint16_t psm)
 {
