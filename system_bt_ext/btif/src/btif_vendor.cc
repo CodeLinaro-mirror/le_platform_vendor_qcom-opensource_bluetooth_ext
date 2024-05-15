@@ -294,11 +294,15 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
 static hci_event_cb vsc_cb;
 static bool hci_event_cb_needed;
 
-static void btif_vendor_hci_event_callback_entry ( tBTM_RAW_CMPL *p)
+using hci_cmd_cb = base::Callback<void(uint8_t* /* return_parameters */, uint16_t /* return_parameters_length*/)>;
+extern void btu_hcif_send_cmd_with_cb(const tracked_objects::Location& posted_from,
+                                      uint16_t opcode, uint8_t* params, uint8_t params_len, hci_cmd_cb cb);
+
+static void btif_vendor_hci_event_callback_entry(unsigned char* param, unsigned short param_len)
 {
   BTIF_TRACE_DEBUG("%s, callback:%d, %d", __FUNCTION__, hci_event_cb_needed, vsc_cb.is_null());
-  if((p != NULL) && hci_event_cb_needed) {
-    vsc_cb.Run(p->event_code, p->p_param_buf, p->param_len);
+  if((param != NULL) && hci_event_cb_needed) {
+    vsc_cb.Run(param, param_len);
   }
 }
 
@@ -308,7 +312,8 @@ int hci_cmd_send_with_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_c
     if (opcode != 0) {
         vsc_cb = cb;
         hci_event_cb_needed = true;
-        return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback_entry);
+        btu_hcif_send_cmd_with_cb(FROM_HERE, opcode, buf, len, base::Bind(&btif_vendor_hci_event_callback_entry));
+        return HCI_SUCCESS;
     }
     else {
         hci_event_cb_needed = false;

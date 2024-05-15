@@ -101,7 +101,7 @@ typedef enum {
 #ifdef SUPPORT_ESL_AP
 typedef uint8_t tBTM_STATUS;
 typedef uint8_t tBT_TRANSPORT;
-using hci_event_cb = base::Callback<void(uint8_t /* event code */, uint8_t * buf, uint8_t /* len*/)>;
+using hci_event_cb = base::Callback<void(uint8_t * buf, uint8_t /* len*/)>;
 using hci_status_cb = base::Callback<void(uint16_t /* opcode */, uint8_t /* status*/)>;
 #endif
 
