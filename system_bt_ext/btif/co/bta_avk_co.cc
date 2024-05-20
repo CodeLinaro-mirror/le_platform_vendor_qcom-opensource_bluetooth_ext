@@ -403,15 +403,21 @@ static tBTA_AVK_CO_PEER *bta_avk_co_get_peer(tBTA_AVK_HNDL hndl)
 uint8_t get_vendor_specific_codec(uint8_t * p_codec_info)
 {
     APPL_TRACE_DEBUG(" %s codec_type %d ", __func__, get_codec_type(p_codec_info));
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
     if ((get_vendor_id(p_codec_info) == A2D_APTX_VENDOR_ID) &&
         (get_codec_id(p_codec_info) == A2D_APTX_CODEC_ID_BLUETOOTH))
         return A2D_VENDOR_CODEC_APTX_CL;
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
     if ((get_vendor_id(p_codec_info) == A2DP_AVK_APTX_AD_VENDOR_ID) &&
         (get_codec_id(p_codec_info) == A2DP_AVK_APTX_AD_CODEC_ID_BLUETOOTH))
         return A2D_VENDOR_CODEC_APTX_AD;
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
     if ((get_vendor_id(p_codec_info) == A2D_APTX_HD_VENDOR_ID) &&
         (get_codec_id(p_codec_info) == A2D_APTX_HD_CODEC_ID_BLUETOOTH))
         return A2D_VENDOR_CODEC_APTX_HD;
+#endif
     return A2D_NON_A2DP_MEDIA_CT;
 }
 /*******************************************************************************
@@ -499,14 +505,17 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
     APPL_TRACE_DEBUG(" %s add codec_type %d in peer->p_src ",__func__,codec_type)
     if((codec_type == BTA_AVK_CODEC_SBC) && (!is_codec_enabled(BTIF_SV_AVK_AA_SBC_INDEX)))
         return FALSE;
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
     if((codec_type == BTA_AVK_CODEC_M24) && (!is_codec_enabled(BTIF_SV_AVK_AA_AAC_INDEX)))
         return FALSE;
+#endif
 #if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     if((codec_type == BTA_AVK_CODEC_M12) && (!is_codec_enabled(BTIF_SV_AVK_AA_MP3_INDEX)))
         return FALSE;
 #endif/* MP3_DECODER_INCLUDED */
     if(codec_type == A2D_NON_A2DP_MEDIA_CT)
     {
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
         if ((A2D_VENDOR_CODEC_APTX_CL == get_vendor_specific_codec(p_codec_info)) &&
             (!is_codec_enabled(BTIF_SV_AVK_AA_APTX_INDEX)))
             {
@@ -518,7 +527,8 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
                 APPL_TRACE_DEBUG(" %s  add codec_type %d in peer->p_src ",
                                               __func__,BTIF_SV_AVK_AA_APTX_INDEX);
             }
-
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
         if ((A2D_VENDOR_CODEC_APTX_AD == get_vendor_specific_codec(p_codec_info)) &&
             (!is_codec_enabled(BTIF_SV_AVK_AA_APTX_AD_INDEX)))
             {
@@ -530,6 +540,8 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
                 APPL_TRACE_DEBUG(" %s  add codec_type %d in peer->p_src ",
                                            __func__, BTIF_SV_AVK_AA_APTX_AD_INDEX);
             }
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
         if ((A2D_VENDOR_CODEC_APTX_HD == get_vendor_specific_codec(p_codec_info)) &&
             (!is_codec_enabled(BTIF_SV_AVK_AA_APTX_HD_INDEX)))
             {
@@ -541,6 +553,7 @@ static bool append_codec(tBTA_AVK_CODEC codec_type, tBTA_AVK_HNDL hndl, uint8_t 
                 APPL_TRACE_DEBUG(" %s  add codec_type %d in peer->p_src ",
                                            __func__, BTIF_SV_AVK_AA_APTX_HD_INDEX);
             }
+#endif
     }
 
     for (index = 0; index < p_peer->num_sup_srcs; index++)
@@ -1471,7 +1484,7 @@ uint8_t bta_avk_co_audio_getconfig(tBTA_AVK_HNDL hndl, tBTA_AVK_CODEC codec_type
 *
 ******************************************************************************/
 uint8_t  A2DP_IsPeerCodecValid(tBTA_AVK_CODEC codec_type, uint8_t *p_codec_info) {
-  uint8_t status = A2DP_SUCCESS;
+  uint8_t status = A2DP_BAD_CODEC_TYPE;
 
   switch (codec_type) {
           case A2DP_MEDIA_CT_SBC :
@@ -1479,8 +1492,10 @@ uint8_t  A2DP_IsPeerCodecValid(tBTA_AVK_CODEC codec_type, uint8_t *p_codec_info)
                   (tA2D_SBC_CIE *)&bta_avk_co_sbc_caps);
                   break;
           case A2DP_MEDIA_CT_AAC :
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
                   status = bta_avk_aac_cfg_matches_cap(p_codec_info,
                   (tA2D_AAC_CIE *)&bta_avk_co_aac_caps);
+#endif
                   break;
           case A2DP_MEDIA_CT_NON_A2DP :
                   status = A2DP_NS_CODEC_TYPE;
@@ -1915,7 +1930,6 @@ static bool bta_avk_co_audio_codec_cfg_matches_caps(uint8_t codec_id, const uint
         /* in case of Sink we have to match if Src Cap is a subset of ours */
     case A2D_NON_A2DP_MEDIA_CT:
     {
-    tA2D_APTX_CIE  *p_src_aptx_caps = (tA2D_APTX_CIE*)p_src_caps;
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
     if ((p_src_aptx_caps->vendorId == A2D_APTX_VENDOR_ID) &&
         (p_src_aptx_caps->codecId == A2D_APTX_CODEC_ID_BLUETOOTH))

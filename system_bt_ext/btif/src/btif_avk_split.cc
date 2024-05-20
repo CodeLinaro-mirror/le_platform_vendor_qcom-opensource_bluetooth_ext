@@ -2721,7 +2721,7 @@ static bt_status_t suspend_req(const RawAddress& bd_addr) {
     return BT_STATUS_SUCCESS;
 }
 
-
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         set_ttp_range_for_aptx_ad
@@ -2771,7 +2771,7 @@ void set_ttp_range_for_aptx_ad(uint16_t min, uint16_t max) {
        BTIF_TRACE_DEBUG("Setting TTP range for aptxad codec failed: max < min");
     }
 }
-
+#endif
 /*******************************************************************************
 **
 ** Function         update_streaming_device_vendor
@@ -3569,7 +3569,9 @@ static const btav_sink_vendor_interface_t bt_avk_sink_split_vendor_interface = {
     suspend_ind_rsp,
     start_req,
     suspend_req,
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
     set_ttp_range_for_aptx_ad,
+#endif
 };
 
 /*******************************************************************************

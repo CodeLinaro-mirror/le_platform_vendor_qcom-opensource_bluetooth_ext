@@ -70,9 +70,9 @@ uint8_t bta_avk_get_current_codec();
 
 uint8_t bta_avk_get_current_vendor_codec();
 
-
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
 bool bta_avk_co_audio_get_aac_config(tA2D_AAC_CIE *p_aac_config);
-
+#endif
 bool bta_avk_co_audio_get_sbc_config(tA2D_SBC_CIE *p_sbc_config);
 
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
