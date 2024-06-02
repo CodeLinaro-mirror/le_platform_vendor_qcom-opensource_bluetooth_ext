@@ -47,12 +47,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef ANDROID_INCLUDE_BT_VENDOR_H
 #define ANDROID_INCLUDE_BT_VENDOR_H
 
 #include <hardware/bluetooth.h>
+#ifdef SUPPORT_ESL_AP
+#include <vector>
+#include <base/bind.h>
+#endif
 
 __BEGIN_DECLS
 
@@ -90,6 +98,13 @@ typedef enum {
     BT_VENDOR_PROPERTY_TWS_PLUS_AUTO_CONNECT,
 } bt_vendor_property_type_t;
 
+#ifdef SUPPORT_ESL_AP
+typedef uint8_t tBTM_STATUS;
+typedef uint8_t tBT_TRANSPORT;
+using hci_event_cb = base::Callback<void(uint8_t /* event code */, uint8_t * buf, uint8_t /* len*/)>;
+using hci_status_cb = base::Callback<void(uint16_t /* opcode */, uint8_t /* status*/)>;
+#endif
+
 typedef enum {
     BTHF_VOIP_CALL_NETWORK_TYPE_MOBILE = 0,
     BTHF_VOIP_CALL_NETWORK_TYPE_WIFI
@@ -125,6 +140,20 @@ typedef void (* btvendor_bredr_cleanup_callback)(bool status);
 typedef void (* remote_dev_prop_callback)(bt_status_t status,
                           RawAddress *bd_addr, int num_properties,
                           bt_vendor_property_t *properties);
+
+#ifdef SUPPORT_ESL_AP
+/** Bluetooth ACL connection state changed callback */
+typedef bool (*vendor_acl_state_changed_callback)(bt_status_t status, RawAddress *remote_bd_addr,
+                          bt_acl_state_t state, uint16_t conn_handle);
+
+typedef void(tBTM_SEC_CBACK)(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
+                             void* p_ref_data, tBTM_STATUS result);
+
+
+typedef void(*vendor_vs_evt_callback)(std::vector<uint8_t> data);
+
+extern vendor_acl_state_changed_callback vendor_acl_state_changed_cb;
+#endif
 
 /** Bluetooth HCI event Callback */
 /* Receive any HCI event from controller for raw commands */
@@ -189,6 +218,26 @@ typedef struct {
 
     /* Send any test HCI command to the controller. */
     int (*hci_cmd_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+
+#ifdef SUPPORT_ESL_AP
+    int (*hci_cmd_send_with_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb);
+
+    int (*hci_cmd_send_with_status_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_status_cb cb);
+
+    int (*hci_clear_white_list)(void);
+
+    int (*hci_get_white_list_size)(void);
+
+    int (*register_vendor_acl_callback)(vendor_acl_state_changed_callback cb);
+
+    int (*register_vendor_gattc_callback)(void *cb);
+
+    void (*register_vs_event_callback)(vendor_vs_evt_callback cb);
+
+    void (*start_encryption)(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback);
+
+    bt_status_t (*set_conn_scan_parameter)(uint32_t scan_interval, uint32_t scan_window);
+#endif
 
     /** test interface. */
     const void* (*get_testapp_interface)(int);
