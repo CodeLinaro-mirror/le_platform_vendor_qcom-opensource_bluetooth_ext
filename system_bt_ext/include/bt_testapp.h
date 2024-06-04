@@ -301,7 +301,7 @@ class BleTestScannerInterface {
   /** Start or stop LE device scanning */
   virtual void ScanWithCb(bool start, ScanResultCallback cb) = 0;
 
-  virtual void GetScanStatus(base::Callback<void(bool, uint8_t)> cb) = 0;
+  virtual void GetScanStatus(bool *running, uint8_t *scan_type) = 0;
 };
 #endif
 
