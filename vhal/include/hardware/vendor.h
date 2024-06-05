@@ -224,7 +224,7 @@ typedef struct {
 
     int (*hci_cmd_send_with_status_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_status_cb cb);
 
-    int (*hci_clear_white_list)(void);
+    int (*hci_clear_white_list)(uint8_t gatt_if);
 
     int (*hci_get_white_list_size)(void);
 

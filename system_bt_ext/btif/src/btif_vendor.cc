@@ -146,6 +146,7 @@ extern const btgatt_client_interface_t *bt_btif_vendor_gattc_get_interface(void)
 
 #ifdef SUPPORT_ESL_AP
 extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback);
+extern void BTM_Deregister_Bgdev_List(tGATT_IF gatt_if);
 vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
 btgatt_client_callbacks_t  *vendor_gattc_callback = NULL;
 #endif
@@ -342,9 +343,9 @@ int hci_cmd_send_with_status_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_
     }
 }
 
-int hci_clear_white_list(void)
+int hci_clear_white_list(uint8_t gatt_if)
 {
-  //connection_manager::reset(true);
+  BTM_Deregister_Bgdev_List((tGATT_IF)gatt_if);
   return HCI_SUCCESS;
 }
 
