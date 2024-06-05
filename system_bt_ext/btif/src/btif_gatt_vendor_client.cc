@@ -59,6 +59,7 @@ using bluetooth::Uuid;
 using std::vector;
 
 extern const btgatt_client_callbacks_t  *vendor_gattc_callback;
+extern void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p);
 
 /*******************************************************************************
  *  Constants & Macros
@@ -175,6 +176,12 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
+      LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
+      tBTM_RAW_STATUS  raw_status_params;
+      /* Pass paramters to the callback function */
+      raw_status_params.opcode = HCI_CREATE_CONNECTION_CANCEL;   /* Number of bytes in return info */
+      raw_status_params.status = p_data->status;    /* Number of bytes in return info */
+      btm_hci_status_callback_entry (&raw_status_params);  /* Call the cmd complete callback function */
       break;
 
     case BTA_GATTC_CFG_MTU_EVT: {
@@ -344,7 +351,7 @@ void btif_gattc_open_impl(int client_if, RawAddress address, bool is_direct,
   BTIF_TRACE_DEBUG("%s Transport=%d, device type=%d, phy=%d", __func__,
                    transport, device_type, initiating_phys);
   BTA_GATTC_Open(client_if, address, is_direct, transport, opportunistic,
-                 initiating_phys);
+                 initiating_phys, (tBTM_RAW_STATUS_CB *)btm_hci_status_callback_entry);
 }
 
 bt_status_t btif_gattc_open(int client_if, const RawAddress& bd_addr,
@@ -435,8 +442,6 @@ void btif_gattc_close_impl(int client_if, RawAddress address, int conn_id) {
   // Disconnect established connections
   if (conn_id != 0)
     BTA_GATTC_Close(conn_id);
-  else
-    BTA_GATTC_CancelOpen(client_if, address, true);
 
   // Cancel pending background connections (remove from whitelist)
   BTA_GATTC_CancelOpen(client_if, address, false);
