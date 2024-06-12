@@ -237,6 +237,8 @@ typedef struct {
     void (*start_encryption)(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback);
 
     bt_status_t (*set_conn_scan_parameter)(uint32_t scan_interval, uint32_t scan_window);
+
+    void (*register_hci_status_callback)(hci_status_cb cb);
 #endif
 
     /** test interface. */

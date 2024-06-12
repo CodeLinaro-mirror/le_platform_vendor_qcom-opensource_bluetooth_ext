@@ -460,6 +460,19 @@ void register_vs_event_callback(vendor_vs_evt_callback p_cb) {
     vs_event_cb = p_cb;
 }
 
+hci_status_cb p_status_cb;
+void register_hci_status_callback(hci_status_cb p_cb) {
+    p_status_cb = p_cb;
+}
+
+void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p)
+{
+    if((!p_status_cb.is_null()) && (p != NULL)) {
+        BTIF_TRACE_WARNING("%s : enter, opcode:%x, status:%d", __func__, p->opcode, p->status);
+        p_status_cb.Run(p->opcode, p->status);
+    }
+}
+
 tBTM_SEC_CBACK *btm_sec_cb = NULL;
 void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
                              void* p_ref_data, tBTM_STATUS result)
@@ -575,6 +588,7 @@ static const btvendor_interface_t btvendorInterface = {
     register_vs_event_callback,
     start_ble_encryption,
     set_conn_scan_parameter,
+    register_hci_status_callback,
 #endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,
