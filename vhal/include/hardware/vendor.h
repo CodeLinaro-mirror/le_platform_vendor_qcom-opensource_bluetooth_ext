@@ -151,6 +151,7 @@ typedef void(tBTM_SEC_CBACK)(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
 
 
 typedef void(*vendor_vs_evt_callback)(std::vector<uint8_t> data);
+typedef void(*vendor_l2cap_write_cb)(uint16_t lcid, uint8_t ret);
 
 extern vendor_acl_state_changed_callback vendor_acl_state_changed_cb;
 #endif
@@ -239,6 +240,8 @@ typedef struct {
     bt_status_t (*set_conn_scan_parameter)(uint32_t scan_interval, uint32_t scan_window);
 
     void (*register_hci_status_callback)(hci_status_cb cb);
+
+    void (*register_l2cap_write_callback)(vendor_l2cap_write_cb cb);
 #endif
 
     /** test interface. */
