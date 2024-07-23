@@ -3033,6 +3033,8 @@ uint32_t btif_media_enque_sink_data(uint16_t codec_type, uint8_t *data, uint16_t
         int index = btif_avk_idx_by_bdaddr(&bd_addr);
         if (index >= btif_max_avk_clients)
         {
+            osi_free(p_msg);
+            pthread_mutex_unlock(&sink_data_q_lock);
             BTIF_TRACE_DEBUG("%s Invalid index for device", __FUNCTION__);
             return 0;
         }
