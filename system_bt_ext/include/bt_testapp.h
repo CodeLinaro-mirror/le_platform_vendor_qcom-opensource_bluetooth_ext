@@ -154,6 +154,7 @@ typedef struct {
     void        (*LeFreeBuf)(BT_HDR *p_buf);
 #ifdef SUPPORT_ESL_AP
     bool        (*GetPeerConfig) (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
+    void        (*DataWriteBtu) (uint16_t lcid, char *p_data, uint32_t len);
 #endif
 } btl2cap_interface_t;
 

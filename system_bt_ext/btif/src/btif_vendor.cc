@@ -509,6 +509,12 @@ bt_status_t set_conn_scan_parameter(uint32_t scan_interval, uint32_t scan_window
   return do_in_jni_thread(Bind(
       base::IgnoreResult(&set_conn_scan_parameter_impl), scan_interval, scan_window));
 }
+
+vendor_l2cap_write_cb l2cap_write_cb;
+void register_l2cap_write_callback(vendor_l2cap_write_cb cb)
+{
+    l2cap_write_cb = cb;
+}
 #endif
 
 /*******************************************************************************
@@ -589,6 +595,7 @@ static const btvendor_interface_t btvendorInterface = {
     start_ble_encryption,
     set_conn_scan_parameter,
     register_hci_status_callback,
+    register_l2cap_write_callback,
 #endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,
