@@ -52,6 +52,7 @@
 #include "btif_storage.h"
 #include "osi/include/log.h"
 #include "stack_config.h"
+#include "gatt_api.h"
 
 using base::Bind;
 using base::Owned;
@@ -60,6 +61,7 @@ using std::vector;
 
 extern const btgatt_client_callbacks_t  *vendor_gattc_callback;
 extern void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p);
+uint8_t vendor_gattc_if = 0xFF;
 
 /*******************************************************************************
  *  Constants & Macros
@@ -213,6 +215,14 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       //HAL_CBACK(vendor_gattc_callback, services_added_cb,
                 //p_data->service_changed.conn_id);
       break;
+    case BTA_GATTC_SRVC_DISC_DONE_EVT: {
+        BTIF_TRACE_API("%s: BTA_GATTC_SRVC_DISC_DONE_EVT", __func__);
+        uint16_t conn_id = GATT_INVALID_CONN_ID;
+        GATT_GetConnIdIfConnected(vendor_gattc_if, p_data->remote_bda, &conn_id, GATT_TRANSPORT_LE);
+        do_in_jni_thread(
+            Bind(&BTA_GATTC_ServiceSearchRequest, conn_id, nullptr));
+      }
+      break;
 
     default:
       LOG_ERROR(LOG_TAG, "%s: Unhandled event (%d)!", __func__, event);
@@ -253,6 +263,7 @@ void btm_read_rssi_cb(void* p_void) {
                         [](const Uuid& uuid, uint8_t client_id, uint8_t status) {
                           HAL_CBACK(vendor_gattc_callback, register_client_cb,
                                     status, client_id, uuid);
+                          vendor_gattc_if = client_id;
                         },
                         uuid, client_id, status));
                   },
@@ -275,6 +286,7 @@ void btm_read_rssi_cb(void* p_void) {
                         [](const Uuid& uuid, uint8_t client_id, uint8_t status) {
                           HAL_CBACK(vendor_gattc_callback, register_client_cb,
                                     status, client_id, uuid);
+                          vendor_gattc_if = client_id;
                         },
                         uuid, client_id, status));
                   },
