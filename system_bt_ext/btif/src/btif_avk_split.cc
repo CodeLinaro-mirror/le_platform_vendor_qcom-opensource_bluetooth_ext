@@ -981,13 +981,53 @@ static bool btif_avk_split_state_closing_handler(btif_sm_event_t event, void *p_
 
             /* inform the application that we are disconnecting */
             btif_report_connection_state(BTAV_CONNECTION_STATE_DISCONNECTED, (bt_bdaddr_t *)&(btif_avk_cb[index].peer_bda));
+            BTIF_TRACE_IMP(" %s vsc_command_status %d",__FUNCTION__,
+                             btif_avk_cb[index].vsc_command_status);
+            if (btif_avk_cb[index].vsc_command_status != BTIF_AVK_VSC_STARTED) {
+                btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_IDLE);
+	    }
+            break;
 
-            btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_IDLE);
+        case BTIF_AVK_SPLIT_SINK_STOP_CAPTURE:
+            BTIF_TRACE_IMP("%s vsc status  %d",__FUNCTION__,btif_avk_cb[index].vsc_command_status);
+            switch(btif_avk_cb[index].vsc_command_status) {
+                case BTIF_AVK_VSC_STARTED:
+                    // send stop command to soc and once confirmed, send suspend rquest to remote
+                    btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_HDL_VSC);
+                    // send a message to send VSC command
+                    btif_avk_split_dispatch_sm_event(BTIF_AVK_SPLIT_SINK_SEND_VSC_A2DP_STOP, &index,
+                                       sizeof(uint8_t));
+                    break;
+                case BTIF_AVK_VSC_STOP:
+                    // VSC Stop is already done, just ack back
+                    btif_update_cmd_status(A2DP_AVK_CTRL_CMD_STOP_CAPTURE, A2DP_CTRL_ACK_SUCCESS);
+                    break;
+                case BTIF_AVK_VSC_STOPPING:
+                    /* VSC_STOP command has been sent, but ack did not came yet. 
+                     * This can happen, if SUspend would have been initiated first.
+                     * In this case let's wait for VSC Command ack
+                     * */
+                    break;
+                default:
+                    BTIF_TRACE_ERROR("%s  unexpected state %d ",__func__,btif_avk_cb[index].vsc_command_status);
+                    break;
+            }
             break;
 
         case BTIF_AVK_SPLIT_SINK_START_CAPTURE:
              BTIF_TRACE_WARNING("Sending ACK_FAILURE since BT connection is not established");
              btif_update_cmd_status(A2DP_AVK_CTRL_CMD_START_CAPTURE, A2DP_CTRL_ACK_FAILURE);
+             break;
+
+        case BTIF_AVK_SPLIT_SINK_VSC_STOP_COMPLETE_EVT:
+             BTIF_TRACE_DEBUG(" %s vsc_command_status %d",__FUNCTION__,
+                             btif_avk_cb[index].vsc_command_status);
+             if (btif_avk_cb[index].vsc_command_status == BTIF_AVK_VSC_STOP) {
+                btif_update_cmd_status(A2DP_AVK_CTRL_CMD_STOP_CAPTURE, A2DP_CTRL_ACK_SUCCESS);
+             } else {
+                btif_update_cmd_status(A2DP_AVK_CTRL_CMD_STOP_CAPTURE, A2DP_CTRL_ACK_FAILURE);
+             }
+             btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_IDLE);
              break;
 
         case BTIF_AVK_SPLIT_SINK_CHECK_A2DP_READY:
@@ -1933,23 +1973,10 @@ static bool btif_avk_split_state_started_handler(btif_sm_event_t event, void *p_
             break;
         case BTIF_AVK_DISCONNECT_REQ_EVT:
             BTIF_TRACE_EVENT("%s vsc status  %d",__FUNCTION__,btif_avk_cb[index].vsc_command_status);
-            if(btif_avk_cb[index].vsc_command_status == BTIF_AVK_VSC_STARTED) {
-                // memorize this message, need to execute this again after sending VSC command.
-                memorize_msg(index,event,BTIF_AVK_STATE_STARTED, p_data);
-                // send stop command to soc and once confirmed, send suspend rquest to remote
-                btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_HDL_VSC);
-                // send a message to send VSC command
-                btif_avk_split_dispatch_sm_event(BTIF_AVK_SPLIT_SINK_SEND_VSC_A2DP_STOP, &index,
-                                    sizeof(uint8_t));
-                break;
-            }
 
             /* request avdtp to close */
             BTA_AvkClose(btif_avk_cb[index].bta_handle);
             BTA_AvkCloseRc(btif_avk_cb[index].bta_handle);
-
-            /* inform the application that we are disconnecting */
-            btif_report_connection_state(BTAV_CONNECTION_STATE_DISCONNECTING, &(btif_avk_cb[index].peer_bda));
 
             /* wait in closing state until fully closed */
             btif_sm_change_state(btif_avk_cb[index].sm_handle, BTIF_AVK_STATE_CLOSING);
@@ -2721,7 +2748,7 @@ static bt_status_t suspend_req(const RawAddress& bd_addr) {
     return BT_STATUS_SUCCESS;
 }
 
-
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
 /*******************************************************************************
 **
 ** Function         set_ttp_range_for_aptx_ad
@@ -2771,7 +2798,7 @@ void set_ttp_range_for_aptx_ad(uint16_t min, uint16_t max) {
        BTIF_TRACE_DEBUG("Setting TTP range for aptxad codec failed: max < min");
     }
 }
-
+#endif
 /*******************************************************************************
 **
 ** Function         update_streaming_device_vendor
@@ -3379,6 +3406,7 @@ bool btif_avk_split_get_started_device_idx(uint8_t* index) {
     uint8_t num_state_to_check;
     uint8_t states[] = {BTIF_AVK_STATE_STARTED,
                         BTIF_AVK_STATE_SUSPENDING,
+                        BTIF_AVK_STATE_CLOSING,
                         BTIF_AVK_STATE_HDL_VSC};
     num_state_to_check = sizeof(states)/sizeof(uint8_t);
 
@@ -3569,7 +3597,9 @@ static const btav_sink_vendor_interface_t bt_avk_sink_split_vendor_interface = {
     suspend_ind_rsp,
     start_req,
     suspend_req,
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
     set_ttp_range_for_aptx_ad,
+#endif
 };
 
 /*******************************************************************************

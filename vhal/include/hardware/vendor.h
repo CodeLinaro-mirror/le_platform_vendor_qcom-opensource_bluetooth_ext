@@ -101,7 +101,7 @@ typedef enum {
 #ifdef SUPPORT_ESL_AP
 typedef uint8_t tBTM_STATUS;
 typedef uint8_t tBT_TRANSPORT;
-using hci_event_cb = base::Callback<void(uint8_t /* event code */, uint8_t * buf, uint8_t /* len*/)>;
+using hci_event_cb = base::Callback<void(uint8_t * buf, uint8_t /* len*/)>;
 using hci_status_cb = base::Callback<void(uint16_t /* opcode */, uint8_t /* status*/)>;
 #endif
 
@@ -151,6 +151,7 @@ typedef void(tBTM_SEC_CBACK)(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
 
 
 typedef void(*vendor_vs_evt_callback)(std::vector<uint8_t> data);
+typedef void(*vendor_l2cap_write_cb)(uint16_t lcid, uint8_t ret);
 
 extern vendor_acl_state_changed_callback vendor_acl_state_changed_cb;
 #endif
@@ -224,7 +225,7 @@ typedef struct {
 
     int (*hci_cmd_send_with_status_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_status_cb cb);
 
-    int (*hci_clear_white_list)(void);
+    int (*hci_clear_white_list)(uint8_t gatt_if);
 
     int (*hci_get_white_list_size)(void);
 
@@ -237,6 +238,10 @@ typedef struct {
     void (*start_encryption)(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback);
 
     bt_status_t (*set_conn_scan_parameter)(uint32_t scan_interval, uint32_t scan_window);
+
+    void (*register_hci_status_callback)(hci_status_cb cb);
+
+    void (*register_l2cap_write_callback)(vendor_l2cap_write_cb cb);
 #endif
 
     /** test interface. */

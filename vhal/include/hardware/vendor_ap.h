@@ -52,7 +52,9 @@
 #define VENDOR_AP_IS_SUPPORTED TRUE
 #endif
 
-#define VENDOR_AP_MODULE_ID "qeslap"
+#define VENDOR_AP_MODULE_ID          "qeslap"
+#define CERT_CMD_ARG_SIZE            200
+#define CERT_CMD_PARAMETER_COUNT_MIN 1 //cert cmd self
 
 typedef struct {
 
@@ -63,6 +65,7 @@ typedef struct {
 
        int (*deInit)(void);
 
+       int (*cert)(uint8_t parameter_count, char user_cmd[][CERT_CMD_ARG_SIZE]);
 #if 0
        bool (*bondStateChange_cb)(bt_status_t status,
               RawAddress* remote_bd_addr,

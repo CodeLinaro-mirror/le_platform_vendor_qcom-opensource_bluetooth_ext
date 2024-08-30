@@ -95,13 +95,21 @@ A2DP_SINK_OFFLOAD_PARAM offload_sink_start;
 
 typedef union {
     tA2D_SBC_CIE sbc_caps;
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
     tA2D_AAC_CIE aac_caps;
+#endif
 #if defined(MP3_DECODER_INCLUDED) && (MP3_DECODER_INCLUDED == TRUE)
     tA2D_MP3_CIE mp3_caps;
 #endif
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
     tA2D_APTX_CIE aptx_caps;
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
     tA2D_APTX_HD_CIE aptx_hd_caps;
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
     tA2DP_AVK_APTX_AD_CIE aptx_ad_caps;
+#endif
 } codec_cap_info;
 
 /* state machine states */
@@ -257,9 +265,15 @@ uint32_t get_sbc_sample_frequency(uint8_t frequency);
 uint32_t get_sbc_channel_count(uint8_t channeltype);
 uint32_t get_sbc_block_len(uint8_t blocktype);
 uint32_t get_sbc_subband(uint8_t subband_type);
+#if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
 uint32_t calculate_aptx_bitrate(tA2D_APTX_CIE *p_ie);
+#endif
+#if defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)
 uint32_t calculate_aptx_hd_bitrate(tA2D_APTX_HD_CIE *p_ie);
+#endif
+#if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
 uint32_t calculate_aptx_ad_bitrate(tA2DP_AVK_APTX_AD_CIE *p_ie);
+#endif
 uint32_t get_aptx_sampling_frequency(uint8_t samp_freq);
 uint32_t get_aptx_hd_sampling_frequency(uint8_t samp_freq);
 uint32_t get_aptx_ad_sampling_frequency(uint8_t samp_freq);

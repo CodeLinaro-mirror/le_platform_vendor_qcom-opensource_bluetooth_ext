@@ -844,6 +844,9 @@ static void bta_avk_api_register(tBTA_AVK_DATA *p_data)
             index = startIndex;
             while (index < endIndex)
             {
+#if (defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)) || \
+    (defined(APTX_HD_DECODER_INCLUDED) && (APTX_HD_DECODER_INCLUDED == TRUE)) || \
+    (defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE))
                 if (!is_split_enabled()) {
                     /* APTX-Adaptive Decoder is enabled only in Split Mode */
                     if((index ==  BTIF_SV_AVK_AA_APTX_AD_INDEX) ||
@@ -865,7 +868,7 @@ static void bta_avk_api_register(tBTA_AVK_DATA *p_data)
                     }
                 }
                 // Initialize codec.
-
+#endif
                 p_scb->p_cos->init(&codec_type, cs.cfg.codec_info,
                     &cs.cfg.num_protect, cs.cfg.protect_info, index);
 

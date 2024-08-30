@@ -384,11 +384,13 @@ static void btif_split_recv_ctrl_data(void)
                 param[12] = uint8_t(((peerMtu & 0xFF00) >> 8) & 0xFF);
                 param[13] = bitsPerSample;
             }
+#if defined(AAC_DECODER_INCLUDED) && (AAC_DECODER_INCLUDED == TRUE)
             else if(codec_id == A2DP_SINK_AUDIO_CODEC_AAC) {
                 tA2D_AAC_CIE aac_cfg;
                 bta_avk_co_audio_get_aac_config(&aac_cfg);
                 A2D_PrepareAacInfoForAudioHal(AVDT_AVK_MEDIA_AUDIO,&aac_cfg,&param[0]);
             }
+#endif
             else if(codec_id == A2D_NON_A2DP_MEDIA_CT) {
                 vendor_codec_id = bta_avk_get_current_vendor_codec();
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)

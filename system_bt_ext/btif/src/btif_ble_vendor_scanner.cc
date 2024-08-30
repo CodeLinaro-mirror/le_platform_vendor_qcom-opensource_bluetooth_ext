@@ -86,7 +86,7 @@ using std::vector;
 
 static BleTestScannerInterface::ScanResultCallback passive_scan_result_callback;
 
-extern void BTM_GetScanStatus(base::Callback<void (bool, uint8_t)> cb);
+extern void BTM_GetScanStatus(bool *running, uint8_t *scan_type);
 
 namespace {
 
@@ -245,10 +245,8 @@ class BleTestScannerInterfaceImpl : public BleTestScannerInterface{
                               jni_thread_wrapper(FROM_HERE, std::move(cb))));
   }
 
-  void GetScanStatus(base::Callback<void(bool, uint8_t)> cb) {
-    do_in_bta_thread(
-        FROM_HERE, base::Bind(&BTM_GetScanStatus,
-                              jni_thread_wrapper(FROM_HERE, std::move(cb))));
+  void GetScanStatus(bool *running, uint8_t *scan_type) {
+    BTM_GetScanStatus(running, scan_type);
   }
 };
 

@@ -33,11 +33,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#ifdef SUPPORT_ESL_AP
+#include <base/bind.h>
+#endif
 #include <hardware/bluetooth.h>
 
 #define LOG_NDDEBUG 0
 #define LOG_TAG "bluedroid"
 
+#ifdef SUPPORT_ESL_AP
+#include "bta_closure_api.h"
+#endif
 #include "btif_api.h"
 #include "bt_utils.h"
 #include "l2cdefs.h"
@@ -94,6 +100,7 @@ static bool L2cap_LE_FlowControl (uint16_t lcid, uint16_t credits);
 static void L2cap_LE_freebuf(BT_HDR *p_buf);
 #ifdef SUPPORT_ESL_AP
 static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
+static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len);
 #endif
 
 static const btl2cap_interface_t btl2capInterface = {
@@ -141,6 +148,7 @@ static const btl2cap_interface_t btl2capInterface = {
     L2cap_LE_freebuf,
 #ifdef SUPPORT_ESL_AP
     L2cap_GetPeerConfig,
+    L2cap_DataWrite_Btu
 #endif
 };
 
@@ -289,6 +297,23 @@ static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg)
 {
     BTIF_TRACE_DEBUG("L2cap_LE_GetPeerConfig:: Invoked");
     return L2CA_GET_PEER_COC_CONFIG (lcid, peer_cfg);
+}
+
+extern vendor_l2cap_write_cb l2cap_write_cb;
+static void L2cap_DataWrite_Help (uint16_t cid, std::vector<char> data)
+{
+    uint32_t len = data.size();
+    char *p_data = data.data();
+    uint8_t ret = L2cap_DataWrite(cid, p_data, len);
+    if (l2cap_write_cb) {
+        l2cap_write_cb(cid, ret);
+    }
+}
+
+static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len) // only used for first l2cap write from ESL AP
+{
+    std::vector<char> l2cap_data(p_data, p_data+len);
+    do_in_bta_thread(FROM_HERE, base::Bind(&L2cap_DataWrite_Help, cid, std::move(l2cap_data)));
 }
 #endif
 

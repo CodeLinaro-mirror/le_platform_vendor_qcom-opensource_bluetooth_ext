@@ -52,6 +52,7 @@
 #include "btif_storage.h"
 #include "osi/include/log.h"
 #include "stack_config.h"
+#include "gatt_api.h"
 
 using base::Bind;
 using base::Owned;
@@ -59,6 +60,8 @@ using bluetooth::Uuid;
 using std::vector;
 
 extern const btgatt_client_callbacks_t  *vendor_gattc_callback;
+extern void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p);
+uint8_t vendor_gattc_if = 0xFF;
 
 /*******************************************************************************
  *  Constants & Macros
@@ -175,6 +178,12 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
+      LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
+      tBTM_RAW_STATUS  raw_status_params;
+      /* Pass paramters to the callback function */
+      raw_status_params.opcode = HCI_CREATE_CONNECTION_CANCEL;   /* Number of bytes in return info */
+      raw_status_params.status = p_data->status;    /* Number of bytes in return info */
+      btm_hci_status_callback_entry (&raw_status_params);  /* Call the cmd complete callback function */
       break;
 
     case BTA_GATTC_CFG_MTU_EVT: {
@@ -205,6 +214,14 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
     case BTA_GATTC_SRVC_CHG_EVT:
       //HAL_CBACK(vendor_gattc_callback, services_added_cb,
                 //p_data->service_changed.conn_id);
+      break;
+    case BTA_GATTC_SRVC_DISC_DONE_EVT: {
+        BTIF_TRACE_API("%s: BTA_GATTC_SRVC_DISC_DONE_EVT", __func__);
+        uint16_t conn_id = GATT_INVALID_CONN_ID;
+        GATT_GetConnIdIfConnected(vendor_gattc_if, p_data->remote_bda, &conn_id, GATT_TRANSPORT_LE);
+        do_in_jni_thread(
+            Bind(&BTA_GATTC_ServiceSearchRequest, conn_id, nullptr));
+      }
       break;
 
     default:
@@ -246,6 +263,7 @@ void btm_read_rssi_cb(void* p_void) {
                         [](const Uuid& uuid, uint8_t client_id, uint8_t status) {
                           HAL_CBACK(vendor_gattc_callback, register_client_cb,
                                     status, client_id, uuid);
+                          vendor_gattc_if = client_id;
                         },
                         uuid, client_id, status));
                   },
@@ -268,6 +286,7 @@ void btm_read_rssi_cb(void* p_void) {
                         [](const Uuid& uuid, uint8_t client_id, uint8_t status) {
                           HAL_CBACK(vendor_gattc_callback, register_client_cb,
                                     status, client_id, uuid);
+                          vendor_gattc_if = client_id;
                         },
                         uuid, client_id, status));
                   },
@@ -344,7 +363,7 @@ void btif_gattc_open_impl(int client_if, RawAddress address, bool is_direct,
   BTIF_TRACE_DEBUG("%s Transport=%d, device type=%d, phy=%d", __func__,
                    transport, device_type, initiating_phys);
   BTA_GATTC_Open(client_if, address, is_direct, transport, opportunistic,
-                 initiating_phys);
+                 initiating_phys, (tBTM_RAW_STATUS_CB *)btm_hci_status_callback_entry);
 }
 
 bt_status_t btif_gattc_open(int client_if, const RawAddress& bd_addr,
@@ -388,7 +407,6 @@ void btif_gattc_open_impl_v2(int client_if, uint8_t advertising_handle, uint8_t 
         return;
       }
     }
-    BTA_DmBleStartAutoConn();
   }
 
   // Determine transport
@@ -429,14 +447,67 @@ bt_status_t btif_gattc_open_v2(int client_if, uint8_t advertising_handle, uint8_
                                subevent, bd_addr, is_direct,
                                transport, opportunistic, initiating_phys));
 }
+
+void btif_gattc_add_pd(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+ // add device to pending list!
+  BTA_GATTC_Add_Pd(client_if, bd_addr, transport, advertising_handle, subevent);
+}
+
+void btif_gattc_rm_pd(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  // remove device from pending list!
+  BTA_GATTC_Remove_Pd(client_if, bd_addr, transport, advertising_handle, subevent);
+}
+
+void btif_gattc_cl_pd(int client_if, int transport, uint8_t advertising_handle) {
+  // clear device from pending list!
+  BTA_GATTC_Clear_Pd(client_if, transport, advertising_handle);
+}
+
+bt_status_t btif_gattc_add_pending_list(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  return do_in_jni_thread(Bind(&btif_gattc_add_pd, client_if, bd_addr, transport, advertising_handle, subevent));
+}
+
+bt_status_t btif_gattc_remove_pending_list(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  return do_in_jni_thread(Bind(&btif_gattc_rm_pd, client_if, bd_addr, transport, advertising_handle, subevent));
+}
+
+bt_status_t btif_gattc_clear_pending_list(int client_if, int transport, uint8_t advertising_handle) {
+  return do_in_jni_thread(Bind(&btif_gattc_cl_pd, client_if, transport, advertising_handle));
+}
+
+void btif_gattc_add_wl(int client_if, RawAddress bd_addr, int transport) {
+  // Ensure device is in inquiry database
+  int addr_type = 0;
+  int device_type = 0;
+
+  BTIF_TRACE_DEBUG("%s Transport=%d, client_if=%d", __func__, transport, client_if);
+  if (btif_get_address_type(bd_addr, &addr_type) &&
+      btif_get_device_type(bd_addr, &device_type) &&
+      device_type != BT_DEVICE_TYPE_BREDR) {
+    BTA_DmAddBleDevice(bd_addr, addr_type, device_type);
+  }
+  // add device to white list
+  BTA_GATTC_Add_Wl(client_if, bd_addr, transport);
+}
+
+void btif_gattc_rm_wl(int client_if, RawAddress bd_addr, int transport) {
+  BTIF_TRACE_DEBUG("%s Transport=%d, client_if=%d", __func__, transport, client_if);
+  // remove device from white list
+  BTA_GATTC_Remove_Wl(client_if, bd_addr, transport);
+}
+bt_status_t btif_gattc_add_white_list(int client_if, const RawAddress& bd_addr, int transport) {
+  return do_in_jni_thread(Bind(&btif_gattc_add_wl, client_if, bd_addr, transport));
+}
+
+bt_status_t btif_gattc_remove_white_list(int client_if, const RawAddress& bd_addr, int transport) {
+  return do_in_jni_thread(Bind(&btif_gattc_rm_wl, client_if, bd_addr, transport));
+}
 #endif
 
 void btif_gattc_close_impl(int client_if, RawAddress address, int conn_id) {
   // Disconnect established connections
   if (conn_id != 0)
     BTA_GATTC_Close(conn_id);
-  else
-    BTA_GATTC_CancelOpen(client_if, address, true);
 
   // Cancel pending background connections (remove from whitelist)
   BTA_GATTC_CancelOpen(client_if, address, false);
@@ -726,6 +797,11 @@ const btgatt_client_interface_t btgattVendorClientInterface = {
     btif_gattc_get_gatt_db,
 #ifdef SUPPORT_ESL_AP
     btif_gattc_open_v2,
+    btif_gattc_add_pending_list,
+    btif_gattc_remove_pending_list,
+    btif_gattc_clear_pending_list,
+    btif_gattc_add_white_list,
+    btif_gattc_remove_white_list
 #endif
 };
 };  // namespace

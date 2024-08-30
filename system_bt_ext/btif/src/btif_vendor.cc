@@ -146,6 +146,7 @@ extern const btgatt_client_interface_t *bt_btif_vendor_gattc_get_interface(void)
 
 #ifdef SUPPORT_ESL_AP
 extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback);
+extern void BTM_Deregister_Bgdev_List(tGATT_IF gatt_if);
 vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
 btgatt_client_callbacks_t  *vendor_gattc_callback = NULL;
 #endif
@@ -294,11 +295,15 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
 static hci_event_cb vsc_cb;
 static bool hci_event_cb_needed;
 
-static void btif_vendor_hci_event_callback_entry ( tBTM_RAW_CMPL *p)
+using hci_cmd_cb = base::Callback<void(uint8_t* /* return_parameters */, uint16_t /* return_parameters_length*/)>;
+extern void btu_hcif_send_cmd_with_cb(const tracked_objects::Location& posted_from,
+                                      uint16_t opcode, uint8_t* params, uint8_t params_len, hci_cmd_cb cb);
+
+static void btif_vendor_hci_event_callback_entry(unsigned char* param, unsigned short param_len)
 {
   BTIF_TRACE_DEBUG("%s, callback:%d, %d", __FUNCTION__, hci_event_cb_needed, vsc_cb.is_null());
-  if((p != NULL) && hci_event_cb_needed) {
-    vsc_cb.Run(p->event_code, p->p_param_buf, p->param_len);
+  if((param != NULL) && hci_event_cb_needed) {
+    vsc_cb.Run(param, param_len);
   }
 }
 
@@ -308,7 +313,8 @@ int hci_cmd_send_with_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_c
     if (opcode != 0) {
         vsc_cb = cb;
         hci_event_cb_needed = true;
-        return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback_entry);
+        btu_hcif_send_cmd_with_cb(FROM_HERE, opcode, buf, len, base::Bind(&btif_vendor_hci_event_callback_entry));
+        return HCI_SUCCESS;
     }
     else {
         hci_event_cb_needed = false;
@@ -342,9 +348,9 @@ int hci_cmd_send_with_status_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_
     }
 }
 
-int hci_clear_white_list(void)
+int hci_clear_white_list(uint8_t gatt_if)
 {
-  //connection_manager::reset(true);
+  BTM_Deregister_Bgdev_List((tGATT_IF)gatt_if);
   return HCI_SUCCESS;
 }
 
@@ -454,6 +460,19 @@ void register_vs_event_callback(vendor_vs_evt_callback p_cb) {
     vs_event_cb = p_cb;
 }
 
+hci_status_cb p_status_cb;
+void register_hci_status_callback(hci_status_cb p_cb) {
+    p_status_cb = p_cb;
+}
+
+void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p)
+{
+    if((!p_status_cb.is_null()) && (p != NULL)) {
+        BTIF_TRACE_WARNING("%s : enter, opcode:%x, status:%d", __func__, p->opcode, p->status);
+        p_status_cb.Run(p->opcode, p->status);
+    }
+}
+
 tBTM_SEC_CBACK *btm_sec_cb = NULL;
 void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
                              void* p_ref_data, tBTM_STATUS result)
@@ -489,6 +508,12 @@ bt_status_t set_conn_scan_parameter(uint32_t scan_interval, uint32_t scan_window
 //  CHECK_BTGATT_INIT();
   return do_in_jni_thread(Bind(
       base::IgnoreResult(&set_conn_scan_parameter_impl), scan_interval, scan_window));
+}
+
+vendor_l2cap_write_cb l2cap_write_cb;
+void register_l2cap_write_callback(vendor_l2cap_write_cb cb)
+{
+    l2cap_write_cb = cb;
 }
 #endif
 
@@ -569,6 +594,8 @@ static const btvendor_interface_t btvendorInterface = {
     register_vs_event_callback,
     start_ble_encryption,
     set_conn_scan_parameter,
+    register_hci_status_callback,
+    register_l2cap_write_callback,
 #endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,
