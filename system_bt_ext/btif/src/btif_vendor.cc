@@ -149,6 +149,7 @@ extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv
 extern void BTM_Deregister_Bgdev_List(tGATT_IF gatt_if);
 vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
 btgatt_client_callbacks_t  *vendor_gattc_callback = NULL;
+l2capvendor_callbacks_t *l2cap_vendor_callback = NULL;
 #endif
 
 /*******************************************************************************
@@ -510,10 +511,15 @@ bt_status_t set_conn_scan_parameter(uint32_t scan_interval, uint32_t scan_window
       base::IgnoreResult(&set_conn_scan_parameter_impl), scan_interval, scan_window));
 }
 
-vendor_l2cap_write_cb l2cap_write_cb;
-void register_l2cap_write_callback(vendor_l2cap_write_cb cb)
+void register_vendor_l2cap_callback(l2capvendor_callbacks_t *cb)
 {
-    l2cap_write_cb = cb;
+    if (l2cap_vendor_callback == NULL) {
+        l2cap_vendor_callback = cb;
+        BTIF_TRACE_WARNING("%s:l2cap_vendor_callback is registered", __func__);
+    }
+    else {
+        BTIF_TRACE_WARNING("%s:l2cap_vendor_callback is already registered", __func__);
+    }
 }
 #endif
 
@@ -595,7 +601,7 @@ static const btvendor_interface_t btvendorInterface = {
     start_ble_encryption,
     set_conn_scan_parameter,
     register_hci_status_callback,
-    register_l2cap_write_callback,
+    register_vendor_l2cap_callback,
 #endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,

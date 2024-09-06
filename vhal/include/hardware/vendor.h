@@ -152,8 +152,17 @@ typedef void(tBTM_SEC_CBACK)(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
 
 typedef void(*vendor_vs_evt_callback)(std::vector<uint8_t> data);
 typedef void(*vendor_l2cap_write_cb)(uint16_t lcid, uint8_t ret);
+typedef void(*vendor_l2cap_connect_cb)(uint16_t lcid);
+typedef void(*vendor_l2cap_register_cb)(uint8_t status);
 
 extern vendor_acl_state_changed_callback vendor_acl_state_changed_cb;
+
+typedef struct {
+    vendor_l2cap_register_cb l2cap_register_cb;
+    vendor_l2cap_connect_cb l2cap_connect_cb;
+    vendor_l2cap_write_cb l2cap_write_cb;
+} l2capvendor_callbacks_t;
+
 #endif
 
 /** Bluetooth HCI event Callback */
@@ -241,7 +250,7 @@ typedef struct {
 
     void (*register_hci_status_callback)(hci_status_cb cb);
 
-    void (*register_l2cap_write_callback)(vendor_l2cap_write_cb cb);
+    void (*register_vendor_l2cap_callback)(l2capvendor_callbacks_t *cb);
 #endif
 
     /** test interface. */
