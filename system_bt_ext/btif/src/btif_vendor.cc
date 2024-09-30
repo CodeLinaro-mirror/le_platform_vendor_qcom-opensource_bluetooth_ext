@@ -351,8 +351,9 @@ int hci_cmd_send_with_status_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_
 
 int hci_clear_white_list(uint8_t gatt_if)
 {
-  BTM_Deregister_Bgdev_List((tGATT_IF)gatt_if);
-  return HCI_SUCCESS;
+    BTIF_TRACE_DEBUG("hci_clear_white_list: gatt_if=%d", gatt_if);
+    do_in_bta_thread(FROM_HERE, base::Bind(&BTM_Deregister_Bgdev_List, (tGATT_IF)gatt_if));
+    return HCI_SUCCESS;
 }
 
 int hci_get_white_list_size(void)
