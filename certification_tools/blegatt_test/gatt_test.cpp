@@ -205,7 +205,7 @@ const btvendor_interface_t *btvendorInterface = NULL;
 
 
 int  Btif_gatt_layer = TRUE;
-RawAddress* remote_bd_address;
+static RawAddress remote_bd_address;
 
 static uint16_t g_SecLevel = 0;
 static bool g_ConnType = TRUE;//DUT is initiating connection
@@ -1960,7 +1960,7 @@ static void discovery_state_changed(bt_discovery_state_t state)
 
 static void pin_request_cb(RawAddress* remote_bd_addr, bt_bdname_t *bd_name, uint32_t cod, bool min_16_digit )
 {
-    remote_bd_address = remote_bd_addr;
+    remote_bd_address = *remote_bd_addr;
     //bt_pin_code_t pincode = {{0x31, 0x32, 0x33, 0x34}};
     printf("Enter the pin key displayed in the remote device and terminate the key entry with .\n");
 
@@ -3963,7 +3963,7 @@ static void process_cmd(char *p, unsigned char is_job)
         for(i=0; i<6; i++) {
             pincode.pin[i] = cmd[i];
         }
-        if(BT_STATUS_SUCCESS != sBtInterface->pin_reply(remote_bd_address, TRUE, strlen((const char*)pincode.pin), &pincode)) {
+        if(BT_STATUS_SUCCESS != sBtInterface->pin_reply(&remote_bd_address, TRUE, strlen((const char*)pincode.pin), &pincode)) {
             printf("Pin Reply failed\n");
         }
         //flush the char for pinkey
