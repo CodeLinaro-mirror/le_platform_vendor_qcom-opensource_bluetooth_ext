@@ -1972,7 +1972,7 @@ static void pin_request_cb(RawAddress* remote_bd_addr, bt_bdname_t *bd_name, uin
 static void ssp_request_cb(RawAddress* remote_bd_addr, bt_bdname_t *bd_name,
                            uint32_t cod, bt_ssp_variant_t pairing_variant, uint32_t pass_key)
 {
-    printf("ssp_request_cb : name=%s variant=%d passkey=%u\n", bd_name->name, pairing_variant, pass_key);
+    printf("ssp_request_cb : name=%s variant=%d passkey=%06u\n", bd_name->name, pairing_variant, pass_key);
     if(BT_STATUS_SUCCESS != sBtInterface->ssp_reply(remote_bd_addr, pairing_variant, TRUE, pass_key))
     {
         printf("SSP Reply failed\n");
