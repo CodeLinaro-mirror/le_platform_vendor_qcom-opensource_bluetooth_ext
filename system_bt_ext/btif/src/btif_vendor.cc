@@ -484,20 +484,18 @@ void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
     }
 }
 
-void bta_startEncryption(RawAddress address, std::vector<uint8_t> rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback)
+void bta_startEncryption(RawAddress address, std::vector<uint8_t> rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback)
 {
-    BTM_StartEncryption(address, rand.data(), ediv, ltk, p_callback);
+    BT_OCTET16 ltk_val;
+    memcpy(ltk_val, ltk, BT_OCTET16_LEN);
+    BTM_StartEncryption(address, rand.data(), ediv, ltk_val, p_callback);
 }
-
 
 void start_ble_encryption(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback)
 {
     btm_sec_cb = p_callback;
-    BT_OCTET16 ltk_val;
-    STREAM_TO_ARRAY(ltk_val, ltk, BT_OCTET16_LEN);
     std::vector<uint8_t> rand_val(rand, rand + BT_OCTET8_LEN);
-    bta_startEncryption(address, std::move(rand_val), ediv, ltk_val, btm_sec_callback);
-    //do_in_bta_thread(FROM_HERE, Bind(bta_startEncryption, address, std::move(rand_val), ediv, ltk_val, btm_sec_callback));
+    do_in_bta_thread(FROM_HERE, Bind(&bta_startEncryption, address, std::move(rand_val), ediv, ltk, btm_sec_callback));
 }
 
 void set_conn_scan_parameter_impl(uint32_t scan_interval, uint32_t scan_window) {
