@@ -56,12 +56,15 @@
 #define CERT_CMD_ARG_SIZE            200
 #define CERT_CMD_PARAMETER_COUNT_MIN 1 //cert cmd self
 
+//msg must use new to create
+typedef void (*post_to_bt_app)(void *msg);
+
 typedef struct {
 
        /** set to sizeof(vendor_ap_interface_t) */
        size_t size;
 
-       int (*init)(const bt_interface_t* itf);
+       int (*init)(const bt_interface_t* itf, post_to_bt_app post_to_bt);
 
        int (*deInit)(void);
 
