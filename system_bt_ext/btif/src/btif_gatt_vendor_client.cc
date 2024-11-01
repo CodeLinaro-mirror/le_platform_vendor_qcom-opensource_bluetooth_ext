@@ -178,12 +178,14 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
+#ifdef SUPPORT_ESL_AP
       LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
       tBTM_RAW_STATUS  raw_status_params;
       /* Pass paramters to the callback function */
-      raw_status_params.opcode = HCI_CREATE_CONNECTION_CANCEL;   /* Number of bytes in return info */
-      raw_status_params.status = p_data->status;    /* Number of bytes in return info */
-      btm_hci_status_callback_entry (&raw_status_params);  /* Call the cmd complete callback function */
+      raw_status_params.opcode = HCI_BLE_CREATE_CONN_CANCEL;
+      raw_status_params.status = p_data->status;
+      btm_hci_status_callback_entry (&raw_status_params);
+#endif
       break;
 
     case BTA_GATTC_CFG_MTU_EVT: {
