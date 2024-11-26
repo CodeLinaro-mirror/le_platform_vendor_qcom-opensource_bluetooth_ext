@@ -149,6 +149,7 @@ extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv
 extern void BTM_Deregister_Bgdev_List(tGATT_IF gatt_if);
 vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
 btgatt_client_callbacks_t  *vendor_gattc_callback = NULL;
+l2capvendor_callbacks_t *l2cap_vendor_callback = NULL;
 #endif
 
 /*******************************************************************************
@@ -350,8 +351,9 @@ int hci_cmd_send_with_status_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_
 
 int hci_clear_white_list(uint8_t gatt_if)
 {
-  BTM_Deregister_Bgdev_List((tGATT_IF)gatt_if);
-  return HCI_SUCCESS;
+    BTIF_TRACE_DEBUG("hci_clear_white_list: gatt_if=%d", gatt_if);
+    do_in_bta_thread(FROM_HERE, base::Bind(&BTM_Deregister_Bgdev_List, (tGATT_IF)gatt_if));
+    return HCI_SUCCESS;
 }
 
 int hci_get_white_list_size(void)
@@ -483,20 +485,18 @@ void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
     }
 }
 
-void bta_startEncryption(RawAddress address, std::vector<uint8_t> rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback)
+void bta_startEncryption(RawAddress address, std::vector<uint8_t> rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback)
 {
-    BTM_StartEncryption(address, rand.data(), ediv, ltk, p_callback);
+    BT_OCTET16 ltk_val;
+    memcpy(ltk_val, ltk, BT_OCTET16_LEN);
+    BTM_StartEncryption(address, rand.data(), ediv, ltk_val, p_callback);
 }
-
 
 void start_ble_encryption(RawAddress address, uint8_t *rand, uint16_t ediv, const uint8_t *ltk, tBTM_SEC_CBACK* p_callback)
 {
     btm_sec_cb = p_callback;
-    BT_OCTET16 ltk_val;
-    STREAM_TO_ARRAY(ltk_val, ltk, BT_OCTET16_LEN);
     std::vector<uint8_t> rand_val(rand, rand + BT_OCTET8_LEN);
-    bta_startEncryption(address, std::move(rand_val), ediv, ltk_val, btm_sec_callback);
-    //do_in_bta_thread(FROM_HERE, Bind(bta_startEncryption, address, std::move(rand_val), ediv, ltk_val, btm_sec_callback));
+    do_in_bta_thread(FROM_HERE, Bind(&bta_startEncryption, address, std::move(rand_val), ediv, ltk, btm_sec_callback));
 }
 
 void set_conn_scan_parameter_impl(uint32_t scan_interval, uint32_t scan_window) {
@@ -510,10 +510,15 @@ bt_status_t set_conn_scan_parameter(uint32_t scan_interval, uint32_t scan_window
       base::IgnoreResult(&set_conn_scan_parameter_impl), scan_interval, scan_window));
 }
 
-vendor_l2cap_write_cb l2cap_write_cb;
-void register_l2cap_write_callback(vendor_l2cap_write_cb cb)
+void register_vendor_l2cap_callback(l2capvendor_callbacks_t *cb)
 {
-    l2cap_write_cb = cb;
+    if (l2cap_vendor_callback == NULL) {
+        l2cap_vendor_callback = cb;
+        BTIF_TRACE_WARNING("%s:l2cap_vendor_callback is registered", __func__);
+    }
+    else {
+        BTIF_TRACE_WARNING("%s:l2cap_vendor_callback is already registered", __func__);
+    }
 }
 #endif
 
@@ -595,7 +600,7 @@ static const btvendor_interface_t btvendorInterface = {
     start_ble_encryption,
     set_conn_scan_parameter,
     register_hci_status_callback,
-    register_l2cap_write_callback,
+    register_vendor_l2cap_callback,
 #endif
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,

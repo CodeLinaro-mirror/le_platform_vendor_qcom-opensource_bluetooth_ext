@@ -52,6 +52,8 @@
 #if TEST_APP_INTERFACE == TRUE
 #include <bt_testapp.h>
 
+using base::Bind;
+
 static tL2CAP_APPL_INFO    *pl2test_l2c_appl = NULL;
 static bt_status_t L2cap_Init (tL2CAP_APPL_INFO *p);
 static bt_status_t L2cap_Register (uint16_t psm, bool ConnType, uint16_t SecLevel);
@@ -101,6 +103,12 @@ static void L2cap_LE_freebuf(BT_HDR *p_buf);
 #ifdef SUPPORT_ESL_AP
 static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
 static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len);
+static bt_status_t L2cap_LE_Register_Bta (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
+                                          uint8_t enc_key_size);
+static bt_status_t L2cap_LE_DeRegister_Bta (uint16_t psm);
+static uint16_t L2cap_LE_Connect_Bta (uint16_t le_psm , RawAddress address, tL2CAP_LE_CFG_INFO *p_cfg);
+static bool L2cap_DisconnectReq_Bta (uint16_t cid);
+extern l2capvendor_callbacks_t *l2cap_vendor_callback;
 #endif
 
 static const btl2cap_interface_t btl2capInterface = {
@@ -148,7 +156,11 @@ static const btl2cap_interface_t btl2capInterface = {
     L2cap_LE_freebuf,
 #ifdef SUPPORT_ESL_AP
     L2cap_GetPeerConfig,
-    L2cap_DataWrite_Btu
+    L2cap_DataWrite_Btu,
+    L2cap_LE_Register_Bta,
+    L2cap_LE_DeRegister_Bta,
+    L2cap_LE_Connect_Bta,
+    L2cap_DisconnectReq_Bta
 #endif
 };
 
@@ -299,14 +311,13 @@ static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg)
     return L2CA_GET_PEER_COC_CONFIG (lcid, peer_cfg);
 }
 
-extern vendor_l2cap_write_cb l2cap_write_cb;
 static void L2cap_DataWrite_Help (uint16_t cid, std::vector<char> data)
 {
     uint32_t len = data.size();
     char *p_data = data.data();
     uint8_t ret = L2cap_DataWrite(cid, p_data, len);
-    if (l2cap_write_cb) {
-        l2cap_write_cb(cid, ret);
+    if (l2cap_vendor_callback && l2cap_vendor_callback->l2cap_write_cb) {
+        l2cap_vendor_callback->l2cap_write_cb(cid, ret);
     }
 }
 
@@ -314,6 +325,70 @@ static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len) // on
 {
     std::vector<char> l2cap_data(p_data, p_data+len);
     do_in_bta_thread(FROM_HERE, base::Bind(&L2cap_DataWrite_Help, cid, std::move(l2cap_data)));
+}
+
+static void L2cap_LE_Registe_Help (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
+                                          uint8_t enc_key_size)
+{
+    bt_status_t status = L2cap_LE_Register(le_psm, ConnType, SecLevel, enc_key_size);
+
+    if (l2cap_vendor_callback && l2cap_vendor_callback->l2cap_register_cb) {
+        l2cap_vendor_callback->l2cap_register_cb(status);
+    }
+}
+
+static bt_status_t L2cap_LE_Register_Bta (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
+                                          uint8_t enc_key_size)
+{
+    do_in_bta_thread(FROM_HERE, Bind(&L2cap_LE_Registe_Help, le_psm, ConnType, SecLevel, enc_key_size));
+    return BT_STATUS_SUCCESS;
+}
+
+static void L2cap_LE_Connect_Help (uint16_t le_psm , RawAddress address, tL2CAP_LE_CFG_INFO cfg)
+{
+    uint16_t lcid = L2cap_LE_Connect(le_psm, address, &cfg);
+    if (l2cap_vendor_callback && l2cap_vendor_callback->l2cap_connect_cb) {
+        BTIF_TRACE_DEBUG("%s:: call the callback", __FUNCTION__);
+        l2cap_vendor_callback->l2cap_connect_cb(g_lcid);
+    }
+}
+
+static uint16_t L2cap_LE_Connect_Bta (uint16_t le_psm , RawAddress address, tL2CAP_LE_CFG_INFO *p_cfg)
+{
+    tL2CAP_LE_CFG_INFO cfg = *p_cfg;
+    BTIF_TRACE_DEBUG("%s, le_psm:%d", __FUNCTION__, le_psm);
+    do_in_bta_thread(FROM_HERE, Bind(&L2cap_LE_Connect_Help, le_psm, address, cfg));
+    return L2CAP_DW_SUCCESS;
+}
+
+static void L2cap_LE_DeRegister_Help (uint16_t psm)
+{
+    L2cap_LE_DeRegister(psm);
+}
+
+static bt_status_t L2cap_LE_DeRegister_Bta (uint16_t psm)
+{
+    do_in_bta_thread(FROM_HERE, Bind(&L2cap_LE_DeRegister_Help, psm));
+    return BT_STATUS_SUCCESS;
+}
+
+static void L2cap_DisconnectReq_Help (uint16_t cid)
+{
+    L2cap_DisconnectReq(cid);
+}
+
+static bool L2cap_DisconnectReq_Bta (uint16_t cid)
+{
+    tL2C_CCB* p_ccb;
+
+    /* Find the channel control block. We don't know the link it is on. */
+    p_ccb = l2cu_find_ccb_by_cid(NULL, cid);
+    if (p_ccb == NULL) {
+      L2CAP_TRACE_WARNING("L2CAP - no CCB for L2CA_disc_req, CID: %d", cid);
+      return (false);
+    }
+    do_in_bta_thread(FROM_HERE, Bind(&L2cap_DisconnectReq_Help, cid));
+    return true;
 }
 #endif
 

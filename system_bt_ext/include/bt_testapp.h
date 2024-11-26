@@ -155,6 +155,11 @@ typedef struct {
 #ifdef SUPPORT_ESL_AP
     bool        (*GetPeerConfig) (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
     void        (*DataWriteBtu) (uint16_t lcid, char *p_data, uint32_t len);
+    bt_status_t (*RegisterLePsmBta) (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
+                                    uint8_t enc_key_size);
+    bt_status_t (*LeDeregisterBta)(uint16_t psm);
+    uint16_t    (*LeConnectBta) (uint16_t le_psm , RawAddress address, tL2CAP_LE_CFG_INFO *p_cfg);
+    bool        (*DisconnectReqBta)(uint16_t cid);
 #endif
 } btl2cap_interface_t;
 

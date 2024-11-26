@@ -178,12 +178,14 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
+#ifdef SUPPORT_ESL_AP
       LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
       tBTM_RAW_STATUS  raw_status_params;
       /* Pass paramters to the callback function */
-      raw_status_params.opcode = HCI_CREATE_CONNECTION_CANCEL;   /* Number of bytes in return info */
-      raw_status_params.status = p_data->status;    /* Number of bytes in return info */
-      btm_hci_status_callback_entry (&raw_status_params);  /* Call the cmd complete callback function */
+      raw_status_params.opcode = HCI_BLE_CREATE_CONN_CANCEL;
+      raw_status_params.status = p_data->status;
+      btm_hci_status_callback_entry (&raw_status_params);
+#endif
       break;
 
     case BTA_GATTC_CFG_MTU_EVT: {
@@ -502,6 +504,22 @@ bt_status_t btif_gattc_add_white_list(int client_if, const RawAddress& bd_addr, 
 bt_status_t btif_gattc_remove_white_list(int client_if, const RawAddress& bd_addr, int transport) {
   return do_in_jni_thread(Bind(&btif_gattc_rm_wl, client_if, bd_addr, transport));
 }
+
+void btif_gattc_close_impl_v2(int client_if, RawAddress address, int conn_id) {
+  // Disconnect established connections
+  if (conn_id != 0)
+    BTA_GATTC_Close(conn_id);
+
+  // Cancel pending background connections (remove from whitelist)
+  BTA_GATTC_CancelOpen_v2(client_if, address, false);
+}
+
+bt_status_t btif_gattc_close_v2(int client_if, const RawAddress& bd_addr,
+                             int conn_id) {
+  CHECK_BTGATT_INIT();
+  return do_in_jni_thread(
+      Bind(&btif_gattc_close_impl_v2, client_if, bd_addr, conn_id));
+}
 #endif
 
 void btif_gattc_close_impl(int client_if, RawAddress address, int conn_id) {
@@ -801,7 +819,8 @@ const btgatt_client_interface_t btgattVendorClientInterface = {
     btif_gattc_remove_pending_list,
     btif_gattc_clear_pending_list,
     btif_gattc_add_white_list,
-    btif_gattc_remove_white_list
+    btif_gattc_remove_white_list,
+    btif_gattc_close_v2
 #endif
 };
 };  // namespace
