@@ -103,10 +103,11 @@ typedef enum {
 #define APTX_HD_RENDERING_DELAY            200
 #define AAC_RENDERING_DELAY                180
 
-#define BTIF_AVK_PENDING_RESPONSE_TIMEOUT     7000 // 7 seconds
-#define APTX_AD_RENDERING_DELAY            150
+#define BTIF_AVK_PENDING_RESPONSE_TIMEOUT               7000 // 7 seconds
+#define BTIF_AVK_PENDING_RESPONSE_TIMEOUT_CERTIFICATION 1000 // 1 seconds
+#define APTX_AD_RENDERING_DELAY                         150
 
-#define TTP_MIN_LIMIT    255
+#define TTP_MIN_LIMIT   255
 #define TTP_MAX_LIMIT   1020
 /*****************************************************************************
 **  Local type definitions
@@ -1228,7 +1229,13 @@ static bool btif_avk_split_state_opened_handler(btif_sm_event_t event, void *p_d
                 if(streaming_bda.IsEmpty()) {
                     streaming_bda = btif_avk_cb[index].peer_bda;
                 }
-                alarm_set_on_mloop(avk_pending_start_timer,BTIF_AVK_PENDING_RESPONSE_TIMEOUT,
+                char value[PROPERTY_VALUE_MAX] = {'\0'};
+                period_ms_t interval_ms = BTIF_AVK_PENDING_RESPONSE_TIMEOUT;
+                osi_property_get("vendor.bt.pts.certification", value, "false");
+                if (!(strcmp(value,"true"))){
+                    interval_ms = BTIF_AVK_PENDING_RESPONSE_TIMEOUT_CERTIFICATION;
+                }
+                alarm_set_on_mloop(avk_pending_start_timer, interval_ms,
                                 btif_avk_pending_start_timeout_handler,
                                 (void *)&btif_avk_cb[index].peer_bda);
                 BTIF_TRACE_IMP("%s : alarm set = %d",__func__,
