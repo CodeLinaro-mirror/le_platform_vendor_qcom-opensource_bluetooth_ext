@@ -68,6 +68,7 @@
 #include <time.h>
 
 #include <base/bind.h>
+#include "service/common/bluetooth/low_energy_constants.h"
 
 using bluetooth::Uuid;
 #define bluetooth_module_t "bluetooth_test"
@@ -253,6 +254,7 @@ std::string AUTHENTICATION_LEVEL_UUID3 = "00001121-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_UUID4 = "00001122-0000-1000-8000-00805f9b34fb";
 std::string ALERT_LEVEL_UUID18 = "00001123-0000-1000-8000-00805f9b34fb";
 std::string ALERT_LEVEL_UUID19 = "00001124-0000-1000-8000-00805f9b34fb";
+std::string AUTHENTICATION_LEVEL_UUID5 = "00001125-0000-1000-8000-00805f9b34fb";
 
 //Decscriptors
 std::string ClientCharConfigUUID = "00002902-0000-1000-8000-00805f9b34fb";
@@ -267,6 +269,7 @@ std::string AUTHENTICATION_LEVEL_DESC_UUID1 = "00001400-0000-1000-8000-00805f9b3
 std::string AUTHENTICATION_LEVEL_DESC_UUID2 = "00001401-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_DESC_UUID3 = "00001402-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_DESC_UUID4 = "00001403-0000-1000-8000-00805f9b34fb";
+std::string AUTHENTICATION_LEVEL_DESC_UUID5 = "00001404-0000-1000-8000-00805f9b34fb";
 
 std::string CharacteristicExtendedProperties = "00002900-0000-1000-8000-00805f9b34fb";
 std::string CharacteristicUserDescription = "00002901-0000-1000-8000-00805f9b34fb";
@@ -853,6 +856,23 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //use shortByteValue byte array for this desc
     service3.push_back(desc2);
 
+    btgatt_db_element_t char_new_add;//Encrypted key size >=16
+    char_new_add.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_UUID5, &is_valid);
+    char_new_add.type = BTGATT_DB_CHARACTERISTIC;
+    uint8_t req_min_key_size = 10;
+    uint16_t permissions = bluetooth::kAttributePermissionWriteEncrypted|bluetooth::kAttributePermissionRead;
+    char_new_add.properties = bluetooth::kCharacteristicPropertyWrite|bluetooth::kCharacteristicPropertyIndicate|bluetooth::kCharacteristicPropertyNotify|bluetooth::kCharacteristicPropertyRead;
+    char_new_add.permissions = permissions|(req_min_key_size<<12);
+
+    //use shortByteValue byte array for this char
+    service3.push_back(char_new_add);
+
+    btgatt_db_element_t desc_new_add;
+    desc_new_add.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_DESC_UUID5, &is_valid);
+    desc_new_add.type = BTGATT_DB_DESCRIPTOR;
+    desc_new_add.permissions = permissions;
+    //use shortByteValue byte array for this desc
+    service3.push_back(desc_new_add);
 
     Ret = sGattIfaceScan->server->add_service(g_server_if_scan, service3);
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
