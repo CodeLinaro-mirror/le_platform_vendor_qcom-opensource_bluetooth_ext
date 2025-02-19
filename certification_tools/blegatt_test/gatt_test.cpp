@@ -799,7 +799,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     char9.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_UUID4, &is_valid);
     char9.type = BTGATT_DB_CHARACTERISTIC;
     char9.properties = 58;
-    char9.permissions = 68;
+    char9.permissions = 68|(10<<12);//key size 10, then stack will add 6, so >= 16
     //use longByteValue byte array for this char
     service2.push_back(char9);
 
