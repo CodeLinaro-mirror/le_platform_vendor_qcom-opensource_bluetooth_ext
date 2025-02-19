@@ -3095,7 +3095,8 @@ void do_le_set_idle_timeout(char *p)
 {
     int idle_timeout;
     RawAddress bd_addr = {{0}};
-        if(FALSE == GetBdAddr(p, &bd_addr))    return;
+    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+    p = p + 13;//addr len 12 + 1 bytes space
     idle_timeout = get_int(&p, -1); //arg2
     sGattInterface->cSetIdleTimeout(bd_addr, idle_timeout);
 
@@ -3817,7 +3818,8 @@ void do_smp_security_grant(char *p)
     uint8_t    res;
     RawAddress bd_addr = {{0}};
     if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
-    res = get_int(&p, -1); // arg2
+    p = p + 13;//addr len 12 + 1 bytes space
+    res = get_int(&p, -1);// arg2
     sSmpIface->SecurityGrant(bd_addr, res);
     printf("%s:: Ret=%d \n", __FUNCTION__,res);
 }
@@ -3827,11 +3829,12 @@ void do_smp_passkey_reply(char *p)
     uint32_t passkey;
     uint8_t    res;
     RawAddress bd_addr = {{0}};
-    if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
-        printf("get res value\n");
-    res = get_int(&p, -1); // arg2
+    if(FALSE == GetBdAddr(p, &bd_addr))        return; //arg1
+    p = p + 13;//addr len 12 + 1 bytes space
+    printf("get res value\n");
+    res = get_int(&p, -1);// arg2
         printf("res value=%d\n", res);
-    passkey = get_int(&p, -1); // arg3
+    passkey = get_int(&p, -1);// arg3
         printf("passkey value=%d\n", passkey);
     sSmpIface->PasskeyReply(bd_addr, res, passkey);
     printf("%s:: Ret=%d \n", __FUNCTION__,res);
@@ -3843,7 +3846,8 @@ void do_smp_encrypt(char *p)
     uint8_t    res;
     RawAddress bd_addr = {{0}};
     if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
-    res = get_int(&p, -1); // arg2
+    p = p + 13;//addr len 12 + 1 bytes space
+    res = get_int(&p, -1);// arg2
     printf("%s:: res =%d Ret=%d \n", __FUNCTION__,res, Ret);
 }
 
@@ -3856,7 +3860,7 @@ void do_le_gap_conn_param_update(char *p)
     attr_value.conn_param.latency = 0;
     attr_value.conn_param.sp_tout = 10;
     RawAddress bd_addr = {{0}};
-    if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
+    if(FALSE == GetBdAddr(p, &bd_addr)) return;//arg1
     //attr_uuid = get_hex(&p, -1);
     //L2CA_UpdateBleConnParams(bd_addr.address, 50, 70, 0, 1000);
     printf("stage 1\n");
@@ -3873,7 +3877,7 @@ void do_le_gap_attr_init(char *p)
 void do_le_set_char_len(char *p)
 {
      int len;
-     len = get_int(&p, -1); //arg1
+     len = get_int(&p, -1);//arg1
      if (len > LE_CHAR_MAX_LEN_VAL || len < 1) {
        printf("Invalid length. Enter 1 to 512\n");
      } else {
@@ -3936,6 +3940,7 @@ void do_l2cap_send_data_cid(char *p)
     uint16_t         Ret = 0;
     RawAddress bd_addr = {{0}};
     if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
+    p = p + 13;//addr len 12 + 1 bytes space
     cid = get_int(&p, -1); // arg2
 
     bt_hdr.event     = 0;
@@ -4122,6 +4127,7 @@ int GetBdAddr(char *p, RawAddress* pbd_addr)
         }
         pbd_addr->address[i] = (k1<<4 | k2);
     }
+    printf("get BdAddr:%s\n", pbd_addr->ToString().c_str());
     return TRUE;
 }
 #endif //TEST_APP_INTERFACE
