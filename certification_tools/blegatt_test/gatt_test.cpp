@@ -280,6 +280,7 @@ uint8_t long_byte_value[] = {31, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 uint8_t short_byte_value[] = {31, 2};
 
 int len_long_char = 512;
+int fixed_len_long_char = 412;
 int len_short_char = 2;
 
 int curr_char_val_len =0;
@@ -1024,7 +1025,10 @@ static void request_read_cb(int conn_id, int trans_id, const RawAddress& bda,
     }
     else if((attr_handle >=74 && attr_handle <=101) || is_long)
     {
-        len = len_long_char;
+        if (attr_handle > 91)
+            len = fixed_len_long_char;
+        else
+            len = len_long_char;
         if(offset > len)
         {
             printf("%s:: Invalid offset\n", __FUNCTION__);
