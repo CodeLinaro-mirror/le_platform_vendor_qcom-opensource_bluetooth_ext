@@ -73,6 +73,8 @@
 using bluetooth::Uuid;
 #define bluetooth_module_t "bluetooth_test"
 
+#define GATT_APPLICATION_ERROR 0x80
+
 typedef struct {
   uint16_t advertising_event_properties;
   uint32_t adv_int_min;
@@ -137,6 +139,8 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid);
 
 static unsigned char main_done = 0;
 static int status;
+void data_dump(uint8_t *data, uint16_t len);
+
 typedef struct
 {
     uint16_t      result;                 /* Only used in confirm messages */
@@ -1123,8 +1127,9 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
     exec_write_status = BT_STATUS_SUCCESS;
     bool drop = false;
 
-    printf("%s:: value size=%d, offset=%d \n", __FUNCTION__, value.size(), offset);
-
+    printf("%s:: value size=%d, offset=%d data:\n", __FUNCTION__, value.size(), offset);
+    if (value.size() > 0)
+      data_dump(value.data(), (int)value.size());
     if(is_prep)
     {
         if (pre_offset == offset) {
@@ -1266,9 +1271,43 @@ static btgatt_server_callbacks_t     sGattServer_cb =
 /************************************************************************************
 **  GATT Callbacks
 ************************************************************************************/
+
+std::string UUID_dump(bluetooth::Uuid uuid)
+{
+    char string_local[5];
+    if (uuid.Is16Bit()) {
+        uint16_t uuid_16 = uuid.As16Bit();
+        snprintf(string_local, 5, "%04x", uuid_16);
+        return string_local;
+    } else {
+        return uuid.ToString();
+    }
+}
+
 static void DiscoverRes_cb (uint16_t conn_id, tGATT_DISC_TYPE disc_type, tGATT_DISC_RES *p_data)
 {
     printf("%s:: conn_id=%d, disc_type=%d\n", __FUNCTION__, conn_id, disc_type);
+    if (p_data) {
+        if (p_data->type.Is16Bit()) {
+            if (p_data->type.As16Bit() == 0x2800) {//primary service
+                printf("DiscoverRes_cb:: Primary Service = %s, s_handle = 0x%04x e_handle = 0x%04x\n",
+                       UUID_dump(p_data->value.group_value.service_type).c_str(), p_data->handle, p_data->value.group_value.e_handle);
+            } else if (p_data->type.As16Bit() == 0x2801) {//secondary service
+                printf("DiscoverRes_cb:: Secondary Service = %s, s_handle = 0x%04x e_handle = 0x%04x\n",
+                       UUID_dump(p_data->value.group_value.service_type).c_str(), p_data->handle, p_data->value.group_value.e_handle);
+            } else if (p_data->type.As16Bit() == 0x2802) {//Included Service
+                printf("DiscoverRes_cb:: Included Service: handle = 0x%04x service_type = %s s_handle = 0x%02x e_handle = 0x%02x\n",
+                       p_data->handle, UUID_dump(p_data->value.incl_service.service_type).c_str(), p_data->value.incl_service.s_handle, p_data->value.incl_service.e_handle);
+            } else if (p_data->type.As16Bit() == 0x2803) {//Characteristic
+                printf("DiscoverRes_cb:: Characteristic: handle = 0x%04x dclr_value.val_handle = 0x%04x uuid = %s\n",
+                       p_data->handle, p_data->value.dclr_value.val_handle, UUID_dump(p_data->value.dclr_value.char_uuid).c_str());
+            } else if (p_data->type.As16Bit() == 0x2901) {//DESCRIPTOR
+                printf("DiscoverRes_cb:: DESCRIPTOR: handle = 0x%04x dclr_value.val_handle = 0x%04x\n", p_data->handle, p_data->value.dclr_value.val_handle);
+            } else if (p_data->type.As16Bit() == 0x2902) {//Client Characteristic Configuration
+                printf("DiscoverRes_cb:: Client Characteristic Configuration: handle = 0x%04x uuid = 2902\n", p_data->handle);
+            }
+        }
+    }
 }
 
 static void DiscoverCmpl_cb (uint16_t conn_id, tGATT_DISC_TYPE disc_type, tGATT_STATUS status)
@@ -1276,9 +1315,86 @@ static void DiscoverCmpl_cb (uint16_t conn_id, tGATT_DISC_TYPE disc_type, tGATT_
     printf("%s:: conn_id=%d, disc_type=%d, status=%d\n", __FUNCTION__, conn_id, disc_type, status);
 }
 
+void data_dump(uint8_t *data, uint16_t len)
+{
+#define LINE_NUM 64
+#define CHRA_NUM_PER_TIME 2
+#define BUF_LENGTH (LINE_NUM*CHRA_NUM_PER_TIME+10)
+    char buf[BUF_LENGTH];
+    int line_loop = 0;
+    int i =0;
+
+    do {
+        memset(buf, 0, BUF_LENGTH);
+        for (i =0; i < ((len > LINE_NUM)?LINE_NUM:len); i ++) {
+            snprintf(&buf[i*CHRA_NUM_PER_TIME], BUF_LENGTH - i*CHRA_NUM_PER_TIME, "%02x ", data[line_loop*LINE_NUM + i]);
+        }
+        printf("%s\n", buf);
+        len = (len>LINE_NUM)?len-LINE_NUM:0;
+        line_loop += 1;
+    } while (len>0);
+}
+
 static void  OperationCmpl_cb(uint16_t conn_id, tGATTC_OPTYPE op, tGATT_STATUS status, tGATT_CL_COMPLETE *p_data)
 {
     printf("%s:: conn_id=%d, op=%d, status=%d\n", __FUNCTION__, conn_id, op, status);
+    if (op == GATTC_OPTYPE_NOTIFICATION) {
+        printf("%s:: receive notification\n", __FUNCTION__);
+        return;
+    } else if (op == GATTC_OPTYPE_INDICATION) {
+        printf("%s:: receive indication\n", __FUNCTION__);
+        return;
+    }
+    switch (status) {
+        case GATT_SUCCESS:
+            if (op == GATTC_OPTYPE_READ) {
+                printf("%s:: READ_SUCCESS, handle = 0x%04x data:\n", __FUNCTION__, p_data->att_value.handle);
+                if (p_data) {
+                    data_dump(p_data->att_value.value, p_data->att_value.len);
+                }
+            } else {
+                printf("%s:: GATT_SUCCESS\n", __FUNCTION__);
+            }
+            break;
+        case GATT_INVALID_HANDLE:
+            printf("%s:: GATT_INVALID_HANDLE\n", __FUNCTION__);
+            break;
+        case GATT_READ_NOT_PERMIT:
+            printf("%s:: GATT_READ_NOT_PERMIT\n", __FUNCTION__);
+            break;
+        case GATT_WRITE_NOT_PERMIT:
+            printf("%s:: GATT_WRITE_NOT_PERMIT\n", __FUNCTION__);
+            break;
+        case GATT_INVALID_PDU:
+            printf("%s:: GATT_INVALID_PDU\n", __FUNCTION__);
+            break;
+        case GATT_INSUF_AUTHENTICATION:
+            printf("%s:: GATT_INSUF_AUTHENTICATION\n", __FUNCTION__);
+            break;
+        case GATT_INVALID_OFFSET:
+            printf("%s:: GATT_INVALID_OFFSET\n", __FUNCTION__);
+            break;
+        case GATT_INSUF_AUTHORIZATION:
+            printf("%s:: GATT_INSUF_AUTHORIZATION\n", __FUNCTION__);
+            break;
+        case GATT_NOT_FOUND:
+            printf("%s:: GATT_NOT_FOUND\n", __FUNCTION__);
+            break;
+        case GATT_NOT_LONG:
+            printf("%s:: GATT_NOT_LONG\n", __FUNCTION__);
+            break;
+        case GATT_INSUF_KEY_SIZE:
+            printf("%s:: GATT_INSUF_KEY_SIZE\n", __FUNCTION__);
+            break;
+        case GATT_INVALID_ATTR_LEN:
+            printf("%s:: GATT_INVALID_ATTR_LEN\n", __FUNCTION__);
+            break;
+        case GATT_APPLICATION_ERROR:
+            printf("%s:: Application error\n", __FUNCTION__);
+            break;
+        default:
+            break;
+    }
 }
 
 static void Connection_cb (tGATT_IF gatt_if, const RawAddress& bda, uint16_t conn_id, bool connected, tGATT_DISCONN_REASON reason,tBT_TRANSPORT transport)
@@ -2553,12 +2669,19 @@ void do_le_cl_register(int idx)
         case 1:
             uuid = Uuid::FromString("0000A00C-0000-0000-01234-56789ABCDEF", &is_valid);//0000A00C-0000-0000-0123-456789ABCDEF
             bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid); //0000A00C-0000-0000-0123-456789ABCDEF
+            Btif_gatt_layer = TRUE;
             break;
         case 2:
             uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF
             bt_uuid = Uuid::FromString("1122A00C-0000-0000-0123-456789ABCDEF", &is_valid);//1122A00C-0000-0000-0123-456789ABCDEF*/
+            Btif_gatt_layer = TRUE;
             break;
-        default:
+        case 3:
+            uuid = Uuid::FromString("0000A00C-0000-0000-01234-56789ABCDEF", &is_valid);
+            bt_uuid = Uuid::FromString("0000A00C-0000-0000-0123-456789ABCDEF", &is_valid);
+            Btif_gatt_layer = FALSE;
+            break;
+       default:
             printf("%s:: ERROR: no matching uuid \n", __FUNCTION__);
             return;
     }
