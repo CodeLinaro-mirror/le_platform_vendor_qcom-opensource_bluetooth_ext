@@ -228,6 +228,25 @@ void bdt_log(const char *fmt_str, ...)
     fprintf(stdout, "%s\n", buffer);
 }
 
+void bdt_data_dump(uint8_t *data, uint16_t len)
+{
+#define LINE_NUM 64
+#define BUF_LENGTH (LINE_NUM*3+10)
+        char buf[BUF_LENGTH];
+        int line_loop = 0;
+        int i =0;
+
+        do {
+                memset(buf, 0, BUF_LENGTH);
+                for (i =0; i < ((len > LINE_NUM)?LINE_NUM:len); i ++) {
+                        snprintf(&buf[i*3], BUF_LENGTH - i*3, "%02x ", data[line_loop*LINE_NUM + i]);
+                }
+                printf("%s\n", buf);
+                len = (len>LINE_NUM)?len-LINE_NUM:0;
+                line_loop += 1;
+        } while (len>0);
+}
+
 //--------------------l2test----------------------------------------------------
 btl2cap_interface_t* get_l2cap_interface(void);
 
@@ -339,6 +358,9 @@ static void l2test_l2c_QoSViolationInd(const RawAddress &bd_addr)
 static void l2test_l2c_data_ind_cb(uint16_t lcid, BT_HDR *p_buf)
 {
      bdt_log("l2test_l2c_data_ind_cb:: event=%u, len=%u, offset=%u, layer_specific=%u\n", p_buf->event, p_buf->len, p_buf->offset, p_buf->layer_specific);
+     bdt_log("receive data:");
+     uint8_t* pdata = p_buf->data;
+     bdt_data_dump(pdata + p_buf->offset, p_buf->len);
 }
 static void l2test_l2c_congestion_ind_cb(uint16_t lcid, bool is_congested)
 {
