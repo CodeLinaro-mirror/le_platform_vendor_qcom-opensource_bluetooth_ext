@@ -67,6 +67,9 @@
 
 #define TRANSPORT_BREDR 1  //Add tranport parameter to create bond
 
+#define INVALID_CASE      0
+#define L2CAP_FOC_BV_05_C 1
+
 /************************************************************************************
 **  Local type definitions
 ************************************************************************************/
@@ -91,6 +94,7 @@ static bool strict_mode = FALSE;
 static uint8_t g_Fcr_Mode = L2CAP_FCR_BASIC_MODE;
 static uint8_t g_Ertm_AllowedMode = (L2CAP_FCR_CHAN_OPT_BASIC | L2CAP_FCR_CHAN_OPT_ERTM | L2CAP_FCR_CHAN_OPT_STREAM);
 static int g_LocalBusy = 0;
+static int g_TestCase = 0;
 
 enum {
     BT_TURNON_CMD,
@@ -135,7 +139,6 @@ static int count = 1;
 static unsigned long g_delay = 1;
 
 static char *filename = NULL;
-
 
 /* Control channel eL2CAP default options */
 tL2CAP_FCR_OPTS ertm_fcr_opts_def = {
@@ -276,7 +279,19 @@ static void l2test_l2c_config_ind_cb(uint16_t lcid, tL2CAP_CFG_INFO *p_cfg)
     if(p_cfg->mtu_present) g_omtu = p_cfg->mtu;
     else g_omtu = L2CAP_DEFAULT_MTU;
     sL2capInterface->ConfigRsp (lcid, p_cfg);
-    return;
+
+    if(g_TestCase == L2CAP_FOC_BV_05_C) {
+        tL2CAP_CFG_INFO cfg;
+        memcpy (&cfg ,&tl2cap_cfg_info,sizeof(tl2cap_cfg_info));
+        cfg.fcs_present=true;
+        cfg.fcs=0;
+        sleep(1);
+        sL2capInterface->ConfigReq (lcid, &cfg);
+        g_imtu = cfg.mtu;
+        g_ConnectionState = CONNECT;
+        g_lcid = lcid;
+        return;
+       }
 }
 
 static void l2test_l2c_config_cfm_cb(uint16_t lcid, tL2CAP_CFG_INFO *p_cfg)
@@ -1126,7 +1141,7 @@ int main(int argc, char *argv[])
     int opt, mode = RECEIVE, addr_required = 0;
     char temp[3] = {0};
 
-    while ((opt=getopt(argc,argv,"arswcpbf:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) != EOF) {
+    while ((opt=getopt(argc,argv,"arswcpbf:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:G:UATMESR")) != EOF) {
         switch(opt) {
             case 'a':
                 mode = PING;
@@ -1253,6 +1268,10 @@ int main(int argc, char *argv[])
                  g_Sar_Present = TRUE;
                  bdt_log("g_Sar_Present = true \n");
                  break;
+            case 'G':
+                g_TestCase = atoi(optarg);
+                bdt_log("g_TestCase = %d \n",g_TestCase);
+                break;
             default:
             options();
             exit(1);
