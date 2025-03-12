@@ -3987,12 +3987,14 @@ static int Send_Data(char *p)
     {
         printf("Sending Segmented data...\nData written len %d...\n",
                 sizeof(tmpBuffer_1) );
+        data_dump((uint8_t*)tmpBuffer_1, sizeof(tmpBuffer_1));
         do_l2cap_DataWrite(lcid, tmpBuffer_1, sizeof(tmpBuffer_1));
     }
     else if( send_mode == 0) // unsegmented
     {
         printf("Sending Unsegmented data...\nData written len %d...\n",
                 sizeof(tmpBuffer_2) );
+        data_dump((uint8_t*)tmpBuffer_2, sizeof(tmpBuffer_2));
         do_l2cap_DataWrite(lcid, tmpBuffer_2, sizeof(tmpBuffer_2));
     }
     return TRUE;
