@@ -1058,7 +1058,7 @@ static void request_read_cb(int conn_id, int trans_id, const RawAddress& bda,
         len = fixed_len_short_char;
         gatt_resp.attr_value.len = fixed_len_short_char;
     } else {
-        gatt_resp.attr_value.len = 1;
+        gatt_resp.attr_value.len = 2;
     }
 
     printf("%s:: offset=%d, is_long =%d \n", __FUNCTION__, offset, is_long);
@@ -1123,7 +1123,7 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
     gatt_resp.attr_value.handle = attr_handle;
     gatt_resp.attr_value.offset = offset;
     gatt_resp.attr_value.auth_req = 0;
-    gatt_resp.attr_value.len = 1;
+    gatt_resp.attr_value.len = 2;
     exec_write_status = BT_STATUS_SUCCESS;
     bool drop = false;
 
