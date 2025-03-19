@@ -311,7 +311,7 @@ static tL2CAP_CFG_INFO tl2cap_cfg_info;
 static long data_size = -1;
 static uint16_t           g_PSM           = 0;
 static uint16_t           g_lcid          = 0;
-
+static bool               g_test_indi_not = false;
 
 enum {
     SEND,
@@ -1991,6 +1991,11 @@ static void acl_state_changed(bt_status_t status, RawAddress* remote_bd_addr, bt
     remote_bd_addr->address[3], remote_bd_addr->address[4], remote_bd_addr->address[5],
     (state == BT_ACL_STATE_CONNECTED)?"ACL Connected" :"ACL Disconnected"
     );
+    if (g_test_indi_not && state == BT_ACL_STATE_DISCONNECTED && g_PairState != BT_BOND_STATE_BONDED) {
+        printf("Reset CCCD after disconnection when not bonded.\n");
+        memset(attr_value, 0, sizeof(attr_value));
+        g_test_indi_not = false;
+    }
 }
 static void dut_mode_recv(uint16_t opcode, uint8_t *buf, uint8_t len)
 {
@@ -3313,6 +3318,7 @@ void do_le_server_send_indication (char *p)
     Ret = sGattIfaceScan->server->send_indication(g_server_if_scan, attr_handle,
                                                   g_conn_id, confirm, value);
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
+    g_test_indi_not = true;
 }
 
 /**************************************************
