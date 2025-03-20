@@ -437,7 +437,7 @@ const t_cmd console_cmd_list[] =
                       TxTest - 2 <tx_freq> <test_data_len> <payload_pattern>, \n\t \
                       End Test - 3 <no_args>", 0 },
     /* add here */
-    { "rfcomm", do_rfcomm, "rfcomm test", 0},
+    { "rfcomm", do_rfcomm, "rfcomm test <addr> <scn>", 0},
     { "server_rfcomm", do_rfcomm_server ,"rfcomm server test", 0},
     { "dis_client", do_rfcomm_disc_frm_server, "disc from Server", 0},
     { "rfc_con", do_rfc_con, "rfc_con", 0 },
@@ -689,14 +689,26 @@ static bt_os_callouts_t callouts = {
 };
 
 /* Rfcomm Client */
-void bdt_rfcomm(void)
+void bdt_rfcomm(char *p)
 {
+    char            buf[64];
+    bt_rfc_conn_t   conn_param;
     bdt_log("rfcomm client");
+
+    memset(buf, 0, 64);
+    /*Enter BD address */
+    get_str(&p, buf);
+    RawAddress::FromString(buf, conn_param.bdadd);
+    memset(buf ,0 , 64);
+    get_str(&p, buf);
+    conn_param.scn = atoi(buf);
+    bdt_log("SCN =%d",conn_param.scn);
+
     if (btvendorInterface)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-       sRfcInterface->rdut_rfcomm(0);
+       sRfcInterface->rdut_rfcomm(0, &conn_param);
     }
     else
     {
@@ -712,7 +724,7 @@ void bdt_rfcomm_server (void)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-        sRfcInterface->rdut_rfcomm(1);
+        sRfcInterface->rdut_rfcomm(1,nullptr);
     }
     else
     {
@@ -728,7 +740,7 @@ void bdt_rfcomm_disc_from_server(void)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-        sRfcInterface->rdut_rfcomm(3);
+        sRfcInterface->rdut_rfcomm(3,nullptr);
     }
     else
     {
@@ -916,7 +928,7 @@ void do_cleanup(char *p)
 /********* Rfcomm Test toot ***************/
 void do_rfcomm(char *p)
 {
-    bdt_rfcomm();
+    bdt_rfcomm(p);
 }
 
 

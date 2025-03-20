@@ -275,7 +275,7 @@ typedef struct {
 typedef struct {
     size_t          size;
     bt_status_t (*init)( tL2CAP_APPL_INFO* callbacks );
-    void  (*rdut_rfcomm)( uint8_t server );
+    void  (*rdut_rfcomm)(uint8_t server, bt_rfc_conn_t* conn);
     void  (*rdut_rfcomm_test_interface)( tRFC *input);
     bt_status_t (*connect)( RawAddress *bd_addr );
     void  (*cleanup)( void );
