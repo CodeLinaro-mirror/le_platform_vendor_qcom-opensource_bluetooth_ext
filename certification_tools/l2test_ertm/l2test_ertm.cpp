@@ -156,6 +156,7 @@ tL2CAP_FCR_OPTS stream_fcr_opts_def = {
 static tL2CAP_ERTM_INFO t_ertm_info = {0,0,0,0,0,0};
 
 uint8_t do_l2cap_DataWrite(char *p , uint32_t len);
+void handle_sigint(int sig);
 
 
 /************************************************************************************
@@ -703,6 +704,7 @@ static bt_os_callouts_t callouts = {
 void bdt_init(void)
 {
     bdt_log("INIT BT \n");
+    signal(SIGINT, handle_sigint);
     status = (bt_status_t)sBtInterface->init(&bt_callbacks);
     if (status == BT_STATUS_SUCCESS) {
         // Get Vendor Interface
@@ -1067,6 +1069,25 @@ static void l2c_disconnect(char *p)
 {
     bdt_log("In l2c_disconnect\n");
     do_l2cap_disconnect(p);
+}
+
+void handle_sigint(int sig) {
+    switch (sig)
+    {
+    case SIGINT:
+        printf("exit ...\n");
+        //bdt_cleanup();
+        if(g_ConnectionState == CONNECT) {
+            l2c_disconnect(NULL);
+            sleep(5);
+        }
+        do_disable(NULL);
+        HAL_unload();
+        exit(0);
+        break;
+    default:
+        break;
+    }
 }
 
 static void options(void)
