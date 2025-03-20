@@ -1563,6 +1563,7 @@ typedef struct {
 void do_help(char *p);
 void do_quit(char *p);
 void do_init(char *p);
+void handle_sigint(int sig);
 void do_enable(char *p);
 void do_disable(char *p);
 void do_dut_mode_configure(char *p);
@@ -2260,6 +2261,7 @@ static tL2CAP_APPL_INFO l2test_l2c_appl = {
 void bdt_init(void)
 {
     bdt_log("INIT BT ");
+    signal(SIGINT, handle_sigint);
     status = sBtInterface->init(&bt_callbacks);
     if (status == BT_STATUS_SUCCESS) {
         // Get Vendor Interface
@@ -2409,6 +2411,19 @@ void do_help(char *p)
 void do_quit(char *p)
 {
     bdt_shutdown();
+}
+
+void handle_sigint(int sig) {
+    switch (sig)
+    {
+    case SIGINT:
+        HAL_unload();
+        bdt_log(":: Bluedroid test app terminating");
+        exit(0);
+        break;
+    default:
+        break;
+    }
 }
 
 /*******************************************************************
