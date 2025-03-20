@@ -261,9 +261,15 @@ typedef struct {
     uint8_t     role; //0x01 for master
 }bt_role_sw;
 
+typedef struct {
+    uint16_t handle;
+    uint8_t signal;
+}bt_rfc_msc;
+
 typedef union {
     bt_rfc_conn_t  conn;
     uint8_t        server;
+    bt_rfc_msc     msc;
     bt_role_sw     role_switch;
 }tRfcomm_test;
 

@@ -182,12 +182,7 @@ void rdut_rfcomm_test_interface (tRFC *input)
         break;
         case RFC_TEST_CLIENT_TEST_MSC_DATA:
         {
-            remote_bd = input->data.conn.bdadd;
-            BTM_SetSecurityLevel (TRUE, "", 0, 0, 0x03, 3/*BTM_SEC_PROTO_RFCOMM */,
-                                                                input->data.conn.scn);
-            status = RFCOMM_CreateConnection(0x0020, input->data.conn.scn, FALSE, 256,
-                                       remote_bd, &handle, bt_rfc_mmt_cback_msc_data);
-            rfc_handle = handle;
+            PORT_Control(input->data.msc.handle,input->data.msc.signal);
         }
         break;
         case RFC_TEST_FRAME_ERROR:
