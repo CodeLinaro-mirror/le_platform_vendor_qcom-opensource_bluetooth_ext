@@ -4193,20 +4193,23 @@ void do_le_gap_set_conn(char *p)
 void do_l2cap_send_data_cid(char *p)
 {
     uint16_t        cid        = 0;
-    BT_HDR        bt_hdr;
+    BT_HDR*        bt_hdr=(BT_HDR*)calloc(0,sizeof(BT_HDR)+5);
     uint16_t         Ret = 0;
     RawAddress bd_addr = {{0}};
     if(FALSE == GetBdAddr(p, &bd_addr))    return; //arg1
     p = p + 13;//addr len 12 + 1 bytes space
     cid = get_int(&p, -1); // arg2
 
-    bt_hdr.event     = 0;
-    bt_hdr.len         = 1;
-    bt_hdr.offset     = 0;
-    bt_hdr.layer_specific = 0;
-
-
-    Ret = sL2capInterface->SendFixedChnlData(cid, bd_addr, &bt_hdr);
+    bt_hdr->event     = 0;
+    bt_hdr->len         = 5;
+    bt_hdr->offset     = 0;
+    bt_hdr->layer_specific = 0;
+    char*pdata = (char*)&(bt_hdr->data[0]);
+    for(int i=0;i<5;i++){
+        pdata[i]= 0x7F;
+    }
+    printf("begin  to send data...\n");
+    Ret = sL2capInterface->SendFixedChnlData(cid, bd_addr, bt_hdr);
     printf("%s:: Ret=%d \n", __FUNCTION__, Ret);
 
 }
