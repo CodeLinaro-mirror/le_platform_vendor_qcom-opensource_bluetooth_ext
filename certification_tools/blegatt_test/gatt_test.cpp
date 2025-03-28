@@ -283,6 +283,10 @@ std::string ServerCharacteristicConfiguration = "00002903-0000-1000-8000-00805f9
 std::string CharacteristicFormat = "00002904-0000-1000-8000-00805f9b34fb";
 std::string CharacteristicAggregateFormat = "00002905-0000-1000-8000-00805f9b34fb";
 
+std::string DEVICE_NAME_UUID = "00002A00-0000-1000-8000-00805F9B34FB";
+
+static std::string g_uuid = "0";
+
 static uint8_t attr_value[BTGATT_MAX_ATTR_LEN];//600
 
 uint8_t long_byte_value[] = {31, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
@@ -1326,8 +1330,12 @@ void data_dump(uint8_t *data, uint16_t len)
 
     do {
         memset(buf, 0, BUF_LENGTH);
-        for (i =0; i < ((len > LINE_NUM)?LINE_NUM:len); i ++) {
-            snprintf(&buf[i*CHRA_NUM_PER_TIME], BUF_LENGTH - i*CHRA_NUM_PER_TIME, "%02x ", data[line_loop*LINE_NUM + i]);
+        if (g_uuid == DEVICE_NAME_UUID) { // print device name as string.
+            snprintf(buf, BUF_LENGTH, "%s", data);
+        } else {
+            for (i =0; i < ((len > LINE_NUM)?LINE_NUM:len); i ++) {
+                snprintf(&buf[i*CHRA_NUM_PER_TIME], BUF_LENGTH - i*CHRA_NUM_PER_TIME, "%02x ", data[line_loop*LINE_NUM + i]);
+            }
         }
         printf("%s\n", buf);
         len = (len>LINE_NUM)?len-LINE_NUM:0;
@@ -1351,6 +1359,9 @@ static void  OperationCmpl_cb(uint16_t conn_id, tGATTC_OPTYPE op, tGATT_STATUS s
                 printf("%s:: READ_SUCCESS, handle = 0x%04x data:\n", __FUNCTION__, p_data->att_value.handle);
                 if (p_data) {
                     data_dump(p_data->att_value.value, p_data->att_value.len);
+                    if (g_uuid == DEVICE_NAME_UUID) { // reset g_uuid.
+                        g_uuid = "0";
+                    }
                 }
             } else {
                 printf("%s:: GATT_SUCCESS\n", __FUNCTION__);
@@ -3233,8 +3244,8 @@ void do_le_client_read(char *p)
         }
 
         uuid_str = get_uuid_str(&p, uuid_len_bytes);
+        g_uuid = uuid_str;
         readBuf.service.uuid = Uuid::FromString(uuid_str, &is_valid);
-        printf("%s:: read_type = %d is_valid = %d\n", __FUNCTION__, read_type, is_valid);
         break;
 
 
