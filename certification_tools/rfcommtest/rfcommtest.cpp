@@ -107,7 +107,7 @@ static void bdt_log(const char *fmt_str, ...);
 /************************************************************************************
 **  Functions
 ************************************************************************************/
-
+void do_sigint(int sig);
 
 /************************************************************************************
 **  Shutdown helper functions
@@ -736,9 +736,23 @@ void bdt_rfcomm_disc_from_server(void)
     }
 }
 
+void handle_sigint(int sig) {
+    switch (sig)
+    {
+    case SIGINT:
+        bdt_log(":: Bluedroid test app terminating");
+        HAL_unload();
+        exit(0);
+        break;
+    default:
+        break;
+    }
+}
+
 void bdt_init(void)
 {
     bdt_log("INIT BT ");
+    signal(SIGINT, handle_sigint);
     status = (bt_status_t)sBtInterface->init(&bt_callbacks);
     if (status == BT_STATUS_SUCCESS) {
         // Get Vendor Interface
