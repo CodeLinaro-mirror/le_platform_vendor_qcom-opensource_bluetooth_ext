@@ -90,6 +90,7 @@ static int g_secvalue = 0;
 static bool g_ConnType = TRUE;//DUT is initiating connection
 static bool g_Fcr_Present = FALSE;
 static bool g_Sar_Present = FALSE;
+static bool g_Transfer_RR_RNR = FALSE;
 static bool strict_mode = FALSE;
 static uint8_t g_Fcr_Mode = L2CAP_FCR_BASIC_MODE;
 static uint8_t g_Ertm_AllowedMode = (L2CAP_FCR_CHAN_OPT_BASIC | L2CAP_FCR_CHAN_OPT_ERTM | L2CAP_FCR_CHAN_OPT_STREAM);
@@ -1030,9 +1031,16 @@ static int Send_Data()
         do_l2cap_DataWrite(tmpBuffer, 100);
         sleep(5);
         do_l2cap_DataWrite(tmpBuffer, 100);
+        }else if(g_Transfer_RR_RNR)
+        {
+        sL2capInterface->FlowControl(g_lcid, 0);
+        sleep(1);
+        sL2capInterface->FlowControl(g_lcid, 1);
         }
-        else
+        else{
         do_l2cap_DataWrite(tmpBuffer, 5);
+        }
+
     }
     sleep(50);
     free(tmpBuf);
@@ -1130,7 +1138,8 @@ static void options(void)
                 "\t[-E] encryption\n"
                 "\t[-S] secure connection\n"
                 "\t[-T] timestamps\n"
-                "\t[-H mode] 1-SecConnOnlyModeTrue 0-SecConnOnlyModeFalse\n");
+                "\t[-H mode] 1-SecConnOnlyModeTrue 0-SecConnOnlyModeFalse\n"
+                "\t[-R] send RR and RNR\n");
 }
 
 static int len = 0;
@@ -1264,6 +1273,10 @@ int main(int argc, char *argv[])
                 stream_fcr_opts_def.tx_win_sz = ertm_fcr_opts_def.tx_win_sz;
                 tl2cap_cfg_info.fcr.tx_win_sz = ertm_fcr_opts_def.tx_win_sz;
                 break;
+            case 'R':
+                 g_Transfer_RR_RNR = TRUE;
+                 bdt_log("g_Transfer_RR_RNR = true \n");
+                 break;
             case 'Z':
                  g_Sar_Present = TRUE;
                  bdt_log("g_Sar_Present = true \n");
