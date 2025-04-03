@@ -382,6 +382,7 @@ static void do_start_advertisment(char *p);
 static int send_file(char *p);
 static void send_data_on_le_coc(char *svr);
 static void do_send_file(char *svr);
+static void l2cap_connect(char *P);
 
 /************************************************************************************
 **  GATT Client Callbacks
@@ -1765,6 +1766,10 @@ const t_cmd console_cmd_list[] =
 
     { "le_coc_disconnect", do_le_coc_disconnect, "\t::\tchnl_id [chnl_id info"\
         "from conn_ind or conn_cnf]", 0},
+
+    { "l2cap_connect", l2cap_connect, "\t\t::\tpsm [1 to 255],"\
+        "\n\t\t\t\tsec_level [1 - auth, 2 - encrypt_val, 3 - secure_m4_l4],"\
+        "\n\t\t\t\tbd_addr [001122334455] ", 0},
 
     /* last entry */
     {NULL, NULL, "", 0},
@@ -3802,6 +3807,27 @@ bool le_coc_disc(char *p)
 static void do_le_coc_disconnect(char *p)
 {
     le_coc_disc(p);
+}
+
+static void l2cap_connect(char *p)
+{
+    int initiator_sec_level;
+    uint16_t le_coc_seclevel = 0;
+    uint16_t seclevel = 0;
+    RawAddress bd_addr = {{0}};
+    g_PSM = get_int(&p, -1);
+
+    initiator_sec_level = get_int(&p, -1);
+    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+
+    if(initiator_sec_level == 1) seclevel |= BTM_SEC_OUT_AUTHENTICATE;
+    if(initiator_sec_level == 2) seclevel |= BTM_SEC_OUT_ENCRYPT ;
+    if(initiator_sec_level == 3) seclevel |= BTM_SEC_MODE4_LEVEL4;
+
+    sL2capInterface->RegisterPsm(g_PSM, TRUE, seclevel);
+    sleep(3);
+    printf("\ndo_l2cap_connect:::::::: psm %d seclevel = %d\n", g_PSM, seclevel);
+    do_l2cap_connect(bd_addr);
 }
 
 /*******************************************************************************
