@@ -303,6 +303,7 @@ static int g_omtu = 0;
 int start_advertising_set_advertiser_id = -1;
 int start_advertising_set_tx_power = -1;
 int start_advertising_set_status = -1;
+bool pa_enable = false;
 
 enum {
 L2CAP_NOT_CONNECTED,
@@ -1646,6 +1647,7 @@ static void do_set_localname(char *p);
 void do_start_adv_set(char *p);
 //void do_register_adv(char *p);
 void do_unregister_adv_set(char *p);
+void do_send_past (char *p);
 
 /*******************************************************************
  *
@@ -1735,6 +1737,7 @@ const t_cmd console_cmd_list[] =
             "\n primary phy(1 for LE 1M, 3 for LE Coded),"
             "\n secondary phy (1 for LE 1M, 2 for LE 2M and 3 for LE Coded)", 0 },
     { "unregister_advertiser", do_unregister_adv_set, ":: UnregisterAdvertiser", 0 },
+    { "send_past", do_send_past, ":: BdAddr<00112233445566>", 0 },
 
      /* LE-L2CAP cmds */
     { " ", NULL, "\n\t\t\033[0m\033[34mLE L2CAP CoC Commands\033[0m", 0 },
@@ -2887,6 +2890,10 @@ void DoNothing2(uint8_t, uint8_t) {}
 
 void StartAdvertisingSetCb(uint8_t advertiser_id, int8_t tx_power,
                                 uint8_t status) {
+        if (status != 0) {
+            printf("StartAdvertisingSet failed \n");
+            return;
+        }
         start_advertising_set_advertiser_id = advertiser_id;
         start_advertising_set_tx_power = tx_power;
         start_advertising_set_status = status;
@@ -2928,6 +2935,14 @@ void do_start_adv_set(char *p)
 
     params.scan_request_notification_enable = false;
 
+    if (pa_enable) {
+        periodic_params.enable = true;
+        periodic_params.min_interval = 800;
+        periodic_params.max_interval = 800;
+        // peridoc advertising should not be scannable, connectable, legacy, or anonymous advertising
+        params.advertising_event_properties = 0;
+    }
+
     //adv data
     uint8_t arr[] ={10,9,'G','A','T','T','-','T','O','O','L'};
     std::vector<uint8_t> adv_data(arr, arr + (sizeof(arr)/sizeof(arr[0])));
@@ -2939,6 +2954,33 @@ void do_start_adv_set(char *p)
 void do_unregister_adv_set(char *p)
 {
     sGattIfaceScan->advertiser->Unregister(start_advertising_set_advertiser_id);
+}
+void DoNothing(uint8_t ret) {
+    printf("do_send_past:: Ret=%d \n", ret);
+}
+void do_send_past (char *p)
+{
+    RawAddress bd_addr = {{0}};
+    if(FALSE == GetBdAddr(p, &bd_addr)) {
+        printf("%s:: GetBdAddr failed \n", __FUNCTION__);
+        return;
+    }
+    // start periodic advertising for past
+    static uint8_t pa_handle = 255;
+    if (pa_handle == 255) { // only start once
+        pa_enable = true;
+        char *command = "0 1 1 1";
+        do_start_adv_set(command);
+        sleep(3);//wait StartAdvertisingSet finish
+        pa_enable = false; // reset flag
+        if (start_advertising_set_advertiser_id == -1) {
+            printf("send past failed due to start adv failed.\n");
+            return;
+        }
+        pa_handle = start_advertising_set_advertiser_id;
+    }
+    printf("do_send_past:: pa_handle = %d\n", pa_handle);
+    sGattIfaceScan->advertiser->PeriodicAdvSetInfoTransfer(bd_addr, 100, pa_handle, base::Bind(DoNothing));
 }
 
 void do_le_client_configureMTU(char *p)
