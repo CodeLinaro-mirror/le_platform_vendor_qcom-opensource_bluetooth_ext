@@ -255,6 +255,7 @@ std::string AUTHENTICATION_LEVEL_UUID4 = "00001122-0000-1000-8000-00805f9b34fb";
 std::string ALERT_LEVEL_UUID18 = "00001123-0000-1000-8000-00805f9b34fb";
 std::string ALERT_LEVEL_UUID19 = "00001124-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_UUID5 = "00001125-0000-1000-8000-00805f9b34fb";
+std::string ALERT_LEVEL_UUID20 = "00001126-0000-1000-8000-00805f9b34fb";
 
 //Decscriptors
 std::string ClientCharConfigUUID = "00002902-0000-1000-8000-00805f9b34fb";
@@ -270,6 +271,7 @@ std::string AUTHENTICATION_LEVEL_DESC_UUID2 = "00001401-0000-1000-8000-00805f9b3
 std::string AUTHENTICATION_LEVEL_DESC_UUID3 = "00001402-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_DESC_UUID4 = "00001403-0000-1000-8000-00805f9b34fb";
 std::string AUTHENTICATION_LEVEL_DESC_UUID5 = "00001404-0000-1000-8000-00805f9b34fb";
+std::string DISC_LEVEL_UUID8 = "00001405-0000-1000-8000-00805f9b34fb";
 
 std::string CharacteristicExtendedProperties = "00002900-0000-1000-8000-00805f9b34fb";
 std::string CharacteristicUserDescription = "00002901-0000-1000-8000-00805f9b34fb";
@@ -285,6 +287,7 @@ uint8_t short_byte_value[] = {31, 2};
 int len_long_char = 512;
 int fixed_len_long_char = 412;
 int len_short_char = 2;
+int fixed_len_short_char = 2;
 
 int curr_char_val_len =0;
 int curr_handle = 0;
@@ -1002,6 +1005,22 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //use longByteValue byte array for this desc
     service5.push_back(desc12);
 
+    btgatt_db_element_t char_new_add2;//Read/write no Encrypted with fixed len
+    char_new_add2.uuid = Uuid::FromString(ALERT_LEVEL_UUID20, &is_valid);
+    char_new_add2.type = BTGATT_DB_CHARACTERISTIC;
+    char_new_add2.properties = bluetooth::kCharacteristicPropertyWrite|bluetooth::kCharacteristicPropertyIndicate|bluetooth::kCharacteristicPropertyNotify|bluetooth::kCharacteristicPropertyRead;
+    char_new_add2.permissions = bluetooth::kAttributePermissionWrite|bluetooth::kAttributePermissionRead;
+
+    //use shortByteValue byte array for this char
+    service5.push_back(char_new_add2);
+
+    btgatt_db_element_t desc_new_add2;
+    desc_new_add2.uuid = Uuid::FromString(DISC_LEVEL_UUID8, &is_valid);
+    desc_new_add2.type = BTGATT_DB_DESCRIPTOR;
+    desc_new_add2.permissions = bluetooth::kAttributePermissionWrite|bluetooth::kAttributePermissionRead;
+    //use shortByteValue byte array for this desc
+    service5.push_back(desc_new_add2);
+
     Ret = sGattIfaceScan->server->add_service(g_server_if_scan, service5);
     printf("%s:: Ret=%d \n", __FUNCTION__,Ret );
 
@@ -1031,7 +1050,12 @@ static void request_read_cb(int conn_id, int trans_id, const RawAddress& bda,
     gatt_resp.attr_value.handle = attr_handle;
     gatt_resp.attr_value.offset = offset;
     gatt_resp.attr_value.auth_req = 0;
-    gatt_resp.attr_value.len = 1;
+    if (attr_handle == 0x0083) {
+        len = fixed_len_short_char;
+        gatt_resp.attr_value.len = fixed_len_short_char;
+    } else {
+        gatt_resp.attr_value.len = 1;
+    }
 
     printf("%s:: offset=%d, is_long =%d \n", __FUNCTION__, offset, is_long);
 
@@ -1115,7 +1139,11 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
     }
     else
     {
-        if((curr_handle == attr_handle) && ((value.size()+offset) > curr_char_val_len))
+        if ((attr_handle == 0x0083) && ((value.size()+offset) != fixed_len_short_char))
+        {
+            status = invalid_attribute_value_len;
+        }
+        else if((curr_handle == attr_handle) && ((value.size()+offset) > curr_char_val_len))
         {
             printf("%s:: Invalid attribute value length for short char/desc \n", __FUNCTION__);
             status = invalid_attribute_value_len;
