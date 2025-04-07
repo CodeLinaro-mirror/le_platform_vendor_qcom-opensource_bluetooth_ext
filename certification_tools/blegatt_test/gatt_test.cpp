@@ -1105,7 +1105,7 @@ static void request_read_cb(int conn_id, int trans_id, const RawAddress& bda,
     Ret = sGattIfaceScan->server->send_response(conn_id, trans_id, status, gatt_resp);
 }
 
-
+int pre_offset = -1;
 static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
                              int attr_handle, int offset, bool need_rsp,
                              bool is_prep, std::vector<uint8_t> value)
@@ -1121,20 +1121,32 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
     gatt_resp.attr_value.auth_req = 0;
     gatt_resp.attr_value.len = 1;
     exec_write_status = BT_STATUS_SUCCESS;
+    bool drop = false;
 
     printf("%s:: value size=%d, offset=%d \n", __FUNCTION__, value.size(), offset);
 
     if(is_prep)
     {
-        if((value.size()+offset) > len_long_char)
-        {
-            printf("%s:: Invalid attribute value length for long char/desc \n", __FUNCTION__);
-            exec_write_status = invalid_attribute_value_len;
-        }
-        else if((offset > len_long_char) || ((curr_char_val_len > 0) && (offset > curr_char_val_len)))
-        {
-            printf("%s:: Invalid offset for long char/desc \n", __FUNCTION__);
-            exec_write_status = invalid_offset;
+        if (pre_offset == offset) {
+            printf("%s drop repeated packet for long_char offset = %d\n", __FUNCTION__, offset);
+            drop = true;
+        } else {
+            pre_offset = offset;
+            printf("%s packet for long_char offset = %d\n", __FUNCTION__, offset);
+            if ((attr_handle > 91) && ((value.size()+offset) > fixed_len_long_char)) {
+                exec_write_status = invalid_attribute_value_len;
+            } else {
+                if((value.size()+offset) > len_long_char)
+                {
+                    printf("%s:: Invalid attribute value length for long char/desc \n", __FUNCTION__);
+                    exec_write_status = invalid_attribute_value_len;
+                }
+                else if((offset > len_long_char) || ((curr_char_val_len > 0) && (offset > curr_char_val_len)))
+                {
+                    printf("%s:: Invalid offset= %d(long %d, current %d) for long char/desc \n", __FUNCTION__, offset, len_long_char, curr_char_val_len);
+                    exec_write_status = invalid_offset;
+                }
+            }
         }
     }
     else
@@ -1150,7 +1162,7 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
         }
     }
 
-    for(int i=0; i< value.size(); i++) {
+    for(int i=0; (!drop) && (i< value.size()); i++) {
         attr_value[i+offset] = value[i];
     }
 
@@ -1170,9 +1182,14 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
         memcpy(gatt_resp.attr_value.value, &attr_value[offset] , value.size());
         gatt_resp.attr_value.len = value.size();
     }
-
-    curr_char_val_len = value.size();
+    if (is_prep && offset) {
+        if(!drop)
+            curr_char_val_len += value.size();
+    } else {
+        curr_char_val_len = value.size();
+    }
     curr_handle = attr_handle;
+    printf("%s curr_handle = 0x%04x curr_char_val_len = %d\n", __FUNCTION__, curr_handle, curr_char_val_len);
 
     g_conn_id = conn_id;
 
@@ -1187,6 +1204,7 @@ static void request_exec_write_cb(int conn_id, int trans_id, const RawAddress& b
     int status = BT_STATUS_SUCCESS;
     btgatt_response_t  gatt_resp;
 
+    pre_offset = -1;
     gatt_resp.handle = 1;
     gatt_resp.attr_value.handle = 1;
     gatt_resp.attr_value.offset = 0;
