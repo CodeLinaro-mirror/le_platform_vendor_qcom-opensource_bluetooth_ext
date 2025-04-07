@@ -441,7 +441,7 @@ const t_cmd console_cmd_list[] =
     { "server_rfcomm", do_rfcomm_server ,"rfcomm server test", 0},
     { "dis_client", do_rfcomm_disc_frm_server, "disc from Server", 0},
     { "rfc_con", do_rfc_con, "rfc_con", 0 },
-    { "rfc_msccon", do_rfc_con_for_test_msc_data, "rfc_msccon", 0 },
+    { "rfc_msccon", do_rfc_con_for_test_msc_data, "rfc_msccon <handle> <signal>", 0 },
     { "rfc_rls", do_rfc_rls, "rls",     0 },
     { "rfc_senddata", do_rfc_send_data, "rfc_senddata",     0 },
     { "role_sw", do_role_switch, "role_sw", 0},
@@ -984,16 +984,14 @@ void do_rfc_con_for_test_msc_data(char *p)
 {
     char            buf[64];
     tRFC            conn_param;
-
     bdt_log("bdt do_rfc_con_for_test_msc_data");
     memset(buf, 0, 64);
-    /*Enter BD address */
     get_str(&p, buf);
-    RawAddress::FromString(buf, conn_param.data.conn.bdadd);
+    conn_param.data.msc.handle = atoi(buf);
     memset(buf ,0 , 64);
     get_str(&p, buf);
-    conn_param.data.conn.scn = atoi(buf);
-    bdt_log("SCN =%d",conn_param.data.conn.scn);
+    conn_param.data.msc.signal = atoi(buf);
+    bdt_log("handle:%d MSC signal:%d",conn_param.data.msc.handle, conn_param.data.msc.signal);
     /* Connection */
     conn_param.param = RFC_TEST_CLIENT_TEST_MSC_DATA;
     if (btvendorInterface)
