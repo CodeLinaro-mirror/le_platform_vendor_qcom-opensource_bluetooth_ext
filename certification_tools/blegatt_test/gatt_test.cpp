@@ -2430,8 +2430,10 @@ static void l2test_l2c_data_ind_cb(uint16_t lcid, BT_HDR *p_buf)
     printf("l2test_l2c_data_ind_cb:: itration=%d, event=%u, len=%u, "\
             "offset=%u, layer_specific=%u\n",rcv_itration, p_buf->event,
             p_buf->len, p_buf->offset, p_buf->layer_specific);
+    uint8_t* pdata=(uint8_t*)&(p_buf->data[0]);
+    printf("receive data:");
+    data_dump(pdata, p_buf->len);
     sL2capInterface->LeFreeBuf(p_buf);
-     printf("l2test_l2c_data_ind_cb:: event=%u, len=%u, offset=%u, layer_specific=%u\n", p_buf->event, p_buf->len, p_buf->offset, p_buf->layer_specific);
 }
 static void l2test_l2c_congestion_ind_cb(uint16_t lcid, bool is_congested)
 {
