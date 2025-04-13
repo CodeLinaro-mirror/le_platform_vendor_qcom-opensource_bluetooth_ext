@@ -116,6 +116,8 @@ static unsigned char *buf;
 static int g_imtu = 672;
 static int g_omtu = 0;
 
+/* Default fcs option */
+static uint8_t g_fcs = 0;
 
 /* Default data size */
 static long data_size = -1;
@@ -817,7 +819,7 @@ void do_l2cap_init(char *p)
     //use other param if needed
     tl2cap_cfg_info.fcr_present = g_Fcr_Present;
     tl2cap_cfg_info.fcr.mode = g_Fcr_Mode;
-    tl2cap_cfg_info.fcs = 0;
+    tl2cap_cfg_info.fcs = g_fcs;
     tl2cap_cfg_info.fcs_present = 1;
 
     tl2cap_cfg_info.fcr.tx_win_sz = 3;
@@ -1100,7 +1102,7 @@ static void options(void)
                 "\t-p bonding\n"
                 "\t-a ping\n");
     bdt_log("Options:\n"
-                "\t[-b bytes] [-i device] [-P psm] [-J cid]\n"
+                "\t[-b bytes] [-i device] [-P psm] [-J cid] [-f fcs]\n"
                 "\t[-I imtu] [-O omtu]\n"
                 "\t[-L localBusy status] 1-localbusy, 0-otherwise (default=0)\n"
                 "\t[-N num] send num frames (default = infinite)\n"
@@ -1124,7 +1126,7 @@ int main(int argc, char *argv[])
     int opt, mode = RECEIVE, addr_required = 0;
     char temp[3] = {0};
 
-    while ((opt=getopt(argc,argv,"arswcpb:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) != EOF) {
+    while ((opt=getopt(argc,argv,"arswcpbf:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) != EOF) {
         switch(opt) {
             case 'a':
                 mode = PING;
@@ -1159,6 +1161,10 @@ int main(int argc, char *argv[])
 
             case 'b':
                 data_size = atoi(optarg);
+                break;
+
+            case 'f':
+                g_fcs = atoi(optarg);
                 break;
 
             case 'A':
