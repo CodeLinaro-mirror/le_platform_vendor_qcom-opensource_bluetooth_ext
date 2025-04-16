@@ -310,7 +310,8 @@ static int g_omtu = 0;
 int start_advertising_set_advertiser_id = -1;
 int start_advertising_set_tx_power = -1;
 int start_advertising_set_status = -1;
-bool pa_enable = false;
+uint8_t pa_handle = 255;
+int pa_enable = 0;
 
 enum {
 L2CAP_NOT_CONNECTED,
@@ -3066,6 +3067,87 @@ void StartAdvertisingSetCb(uint8_t advertiser_id, int8_t tx_power,
         start_advertising_set_advertiser_id = advertiser_id;
         start_advertising_set_tx_power = tx_power;
         start_advertising_set_status = status;
+        if (pa_enable)
+            pa_handle = start_advertising_set_advertiser_id;
+}
+
+static void RegisterAdvertiserCb(uint8_t adv_id, uint8_t status)
+{
+    if (status != 0)
+        printf("StartAdvertisingSet failed \n");
+    pa_handle = adv_id;
+
+}
+
+static void SetExtendedAdvertisingParametersCb(uint8_t status, int8_t tx_power)
+{
+    if (status != 0)
+        printf("SetExtendedAdvertisingParametersCb failed \n");
+}
+
+void StatusCb(uint8_t status)
+{
+    if (status != 0)
+        printf("StatusCb failed \n");
+}
+
+void VscCb(uint8_t *rsp_buf, uint8_t rsp_len)
+{
+    printf("%s rsp_len = %d\n", __func__, rsp_len);
+    if (rsp_len >= sizeof(uint8_t)) {
+        if (rsp_buf[0])
+            printf("VscCb failed \n");
+    }
+}
+
+struct pa_parameters_t {
+        uint8_t adv_handle;
+        uint16_t interval_min;
+        uint16_t interval_max;
+        uint16_t properties;
+        uint8_t num_sub_frames;
+        uint8_t sub_frame_interval;
+        uint8_t response_slot_delay;
+        uint8_t response_slot_interval;
+        uint8_t num_response_slots;
+} __attribute__((packed));
+
+void StartPawr() {
+    sGattIfaceScan->advertiser->RegisterAdvertiser(base::Bind(&RegisterAdvertiserCb));
+    sleep(1);
+    AdvertiseParameters params;
+    params.advertising_event_properties = 0x0040;
+    params.min_interval = 320; // 200ms
+    params.max_interval = 320;
+    params.channel_map = 0x07;
+    params.tx_power = -7;
+    params.primary_advertising_phy = 1;
+    params.secondary_advertising_phy = 1;
+    params.scan_request_notification_enable = 0;
+    sGattIfaceScan->advertiser->SetParameters(pa_handle, params, base::Bind(&SetExtendedAdvertisingParametersCb));
+    sleep(1);
+
+    uint8_t cmd_buffer[255];
+    uint8_t len = 0;
+    struct pa_parameters_t pa_parameters;
+    pa_parameters.adv_handle = pa_handle;
+    pa_parameters.interval_min = 3200; // 4000ms
+    pa_parameters.interval_max = 3200;
+    pa_parameters.properties = 0x00;
+    pa_parameters.num_sub_frames = 16;
+    pa_parameters.sub_frame_interval = 0x64; // 125ms
+    pa_parameters.response_slot_delay =0x14; // 25ms
+    pa_parameters.response_slot_interval = 0x0A; // 1.25ms
+    pa_parameters.num_response_slots = 18;
+    memcpy(&cmd_buffer[len], &pa_parameters, sizeof(struct pa_parameters_t));
+    len += sizeof(struct pa_parameters_t);
+    btvendorInterface->hci_cmd_send_with_cb(0x2086, cmd_buffer, len, base::Bind(&VscCb));
+    sleep(1);
+
+    sGattIfaceScan->advertiser->SetPeriodicAdvertisingEnable(pa_handle, true, base::Bind(&StatusCb));
+    sleep(1);
+    sGattIfaceScan->advertiser->Enable(pa_handle, true, base::Bind(&StatusCb), 0, 0, base::Bind(&StatusCb));
+    sleep(1);
 }
 
 void do_start_adv_set(char *p)
@@ -3104,12 +3186,16 @@ void do_start_adv_set(char *p)
 
     params.scan_request_notification_enable = false;
 
-    if (pa_enable) {
+    pa_enable = get_int(&p, -1);
+    if (pa_enable == 1) { // Periodic adv without response
         periodic_params.enable = true;
         periodic_params.min_interval = 800;
         periodic_params.max_interval = 800;
         // peridoc advertising should not be scannable, connectable, legacy, or anonymous advertising
         params.advertising_event_properties = 0;
+    } else if (pa_enable == 2) {//PAWR
+        StartPawr();
+        return;
     }
 
     //adv data
@@ -3135,18 +3221,8 @@ void do_send_past (char *p)
         return;
     }
     // start periodic advertising for past
-    static uint8_t pa_handle = 255;
     if (pa_handle == 255) { // only start once
-        pa_enable = true;
-        char *command = "0 1 1 1";
-        do_start_adv_set(command);
-        sleep(3);//wait StartAdvertisingSet finish
-        pa_enable = false; // reset flag
-        if (start_advertising_set_advertiser_id == -1) {
-            printf("send past failed due to start adv failed.\n");
-            return;
-        }
-        pa_handle = start_advertising_set_advertiser_id;
+        printf("%s:: must start pa first! \n", __FUNCTION__);
     }
     printf("do_send_past:: pa_handle = %d\n", pa_handle);
     sGattIfaceScan->advertiser->PeriodicAdvSetInfoTransfer(bd_addr, 100, pa_handle, base::Bind(DoNothing));
