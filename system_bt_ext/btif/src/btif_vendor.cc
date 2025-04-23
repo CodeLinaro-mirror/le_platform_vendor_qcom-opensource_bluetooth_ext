@@ -476,12 +476,17 @@ void btm_hci_status_callback_entry (tBTM_RAW_STATUS *p)
 }
 
 tBTM_SEC_CBACK *btm_sec_cb = NULL;
-void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT trasnport,
+void btm_sec_callback(const RawAddress* bd_addr, tBT_TRANSPORT transport,
                              void* p_ref_data, tBTM_STATUS result)
 {
     BTIF_TRACE_WARNING("%s : enter, result:%d", __func__, result);
     if (btm_sec_cb != NULL) {
-        do_in_jni_thread(Bind(btm_sec_cb, bd_addr, trasnport, p_ref_data, result));
+        RawAddress *new_addr = new RawAddress(*bd_addr);
+        do_in_jni_thread(Bind([](RawAddress* address, tBT_TRANSPORT transport, void* p_ref_data, tBTM_STATUS result){
+            btm_sec_cb(address, transport, p_ref_data, result);
+            delete address;
+            address = nullptr;
+        }, new_addr, transport, p_ref_data, result));
     }
 }
 
