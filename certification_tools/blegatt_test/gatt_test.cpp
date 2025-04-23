@@ -1774,6 +1774,7 @@ void do_le_client_register_ext(char *p);
 void do_le_client_deregister(char *p);
 void do_le_client_deregister_ext(char *p);
 void do_le_client_connect (char *p);
+void do_le_client_connect_v2 (char *p);
 void do_le_client_connect_ext (char *p);
 void do_le_client_refresh (char *p);
 void do_le_conn_param_update(char *p);
@@ -1851,6 +1852,7 @@ const t_cmd console_cmd_list[] =
     { "c_deregister", do_le_client_deregister, "::UUID: 1<1111..> 2<12323..> 3<321111..>", 0 },
     { "c_deregister_ext", do_le_client_deregister_ext, "::clientIf ", 0 },
     { "c_connect", do_le_client_connect, ":: transport-type<0,1...> , BdAddr<00112233445566>", 0 },
+    { "c_connect_v2", do_le_client_connect_v2, ":: BdAddr<00112233445566>", 0 },
     { "c_connect_ext", do_le_client_connect_ext, ":: transport-type<0,1...> , connId, BdAddr<00112233445566>", 0 },
     { "c_refresh", do_le_client_refresh, ":: BdAddr<00112233445566>", 0 },
     { "c_conn_param_update", do_le_conn_param_update, ":: min_interval(hex), max_interval(hex), latency(hex), timeout(hex), BdAddr<00112233445566>", 0 },
@@ -2852,6 +2854,88 @@ void do_le_client_connect (char *p)
     do_le_send_connect_req(g_client_if_scan, bd_addr, transport, false);
 }
 
+void VscCb(uint8_t *rsp_buf, uint8_t rsp_len)
+{
+    printf("%s rsp_len = %d\n", __func__, rsp_len);
+    if (rsp_len >= sizeof(uint8_t)) {
+        if (rsp_buf[0])
+            printf("VscCb failed \n");
+    }
+}
+
+void do_le_client_connect_v2 (char *p)
+{
+    RawAddress  bd_addr = {{0}};
+    if(FALSE == GetBdAddr(p, &bd_addr))    return;
+
+    if (pa_handle == 255) {
+        printf("%s:: must start pa fisrt. \n", __FUNCTION__);
+    }
+    static bool CMU_disabled = false;
+
+    uint8_t len = 0;
+    // disale CMU since FW can't send AUX connect req when do CMU, and default CMU will happen
+    // frequently in noisy environment, causing connect with synchronized device always fails.
+    // This vendor command maybe only valid for QCOM chips.
+    uint8_t cmd_buffer[255] = {0X01, 0X5F, 0X90, 0X00, 0X4F, 0X02, 0X00, 0X00, 0X10, 0X33, 0X73,
+        0X33, 0X33, 0X07, 0X01, 0X02, 0X00, 0X01, 0X22, 0XD7, 0X03, 0XEC, 0X01, 0XDA, 0X00,
+        0X66, 0X06, 0X33, 0X13, 0X90, 0X00, 0X00, 0X03, 0X36, 0X00, 0X21, 0X00, 0X07, 0X40,
+        0X00, 0X28, 0X00, 0X00, 0X10, 0X01, 0X1E, 0X64, 0X0A, 0X00, 0X72, 0X01, 0X2B, 0X2B,
+        0X44, 0X4A, 0X47, 0X45, 0X45, 0X45, 0X43, 0X44, 0X58, 0X57, 0X55, 0X54, 0X5A, 0X59,
+        0X25, 0X40, 0X28, 0X28, 0X39, 0X3D, 0X39, 0X3A, 0X3A, 0X3A, 0X38, 0X39, 0X44, 0X44,
+        0X43, 0X42, 0X45, 0X45, 0X24, 0X36, 0X19, 0X48, 0X40, 0X00, 0X20, 0X40, 0X0A, 0X00,
+        0X72, 0X06, 0X2C, 0X01, 0X03, 0X40, 0X06, 0X28, 0X00, 0X04, 0X00, 0X00, 0X05, 0X03,
+        0X01, 0X01, 0X10, 0X00, 0X10, 0X00, 0X00, 0X0A, 0X02, 0X01, 0X00, 0X00, 0X00, 0XC0,
+        0X20, 0X00, 0X00, 0X00, 0X00, 0X00, 0X00, 0XC8, 0X14, 0X35, 0X09, 0X01, 0X00, 0X00,
+        0X00, 0X90, 0X32, 0X38, 0X14, 0X00, 0X01, 0X36, 0X32, 0X00};
+    len = 0x93;
+    if (!CMU_disabled) {
+        btvendorInterface->hci_cmd_send_with_cb(0xFC0B, cmd_buffer, len, base::Bind(&VscCb));
+        sleep(1);
+        CMU_disabled = true;
+    }
+
+    uint16_t opcode = 0x2085; // HCI_LE_EXTENDED_CREATE_CONNECTION_V2
+    int subevent = 1;
+    uint8_t init_filter_policy = 0x00;
+    uint8_t own_addr_type = BLE_ADDR_PUBLIC;
+    uint8_t peer_addr_type = BLE_ADDR_PUBLIC;
+    RawAddress bda_peer = bd_addr;
+    uint8_t initiating_phys = PHY_LE_1M | PHY_LE_2M | PHY_LE_CODED;
+    uint16_t scan_int = 0x00A0; // 100ms
+    uint16_t scan_win = 0x00A0;
+    uint16_t conn_int_min  = 0x0E; // 17.5ms
+    uint16_t conn_int_max = 0x0E;
+    uint16_t conn_latency = BTM_BLE_CONN_SLAVE_LATENCY_DEF;
+    uint16_t conn_timeout = 1000; // 1000ms
+    uint16_t min_ce_len = 0;
+    uint16_t max_ce_len = 0;
+
+    len = 12 + (16 * 3);
+    uint8_t* pp = (uint8_t*)(cmd_buffer);;
+    UINT8_TO_STREAM(pp, pa_handle);
+    UINT8_TO_STREAM(pp, subevent);
+    UINT8_TO_STREAM(pp, init_filter_policy);
+    UINT8_TO_STREAM(pp, own_addr_type);
+    UINT8_TO_STREAM(pp, peer_addr_type);
+    BDADDR_TO_STREAM(pp, bda_peer);
+    UINT8_TO_STREAM(pp, initiating_phys);
+
+    for (int i = 0; i < 3; i++) {
+        UINT16_TO_STREAM(pp, scan_int);
+        UINT16_TO_STREAM(pp, scan_win);
+        UINT16_TO_STREAM(pp, conn_int_min);
+        UINT16_TO_STREAM(pp, conn_int_max);
+        UINT16_TO_STREAM(pp, conn_latency);
+        UINT16_TO_STREAM(pp, conn_timeout);
+        UINT16_TO_STREAM(pp, min_ce_len);
+        UINT16_TO_STREAM(pp, max_ce_len);
+    }
+
+    btvendorInterface->hci_cmd_send_with_cb(opcode, cmd_buffer, len, base::Bind(&VscCb));
+    sleep(1);
+}
+
 void do_le_client_connect_ext (char *p)
 {
     RawAddress  bd_addr = {{0}};
@@ -3109,15 +3193,6 @@ void StatusCb(uint8_t status)
         printf("StatusCb failed \n");
 }
 
-void VscCb(uint8_t *rsp_buf, uint8_t rsp_len)
-{
-    printf("%s rsp_len = %d\n", __func__, rsp_len);
-    if (rsp_len >= sizeof(uint8_t)) {
-        if (rsp_buf[0])
-            printf("VscCb failed \n");
-    }
-}
-
 struct pa_parameters_t {
         uint8_t adv_handle;
         uint16_t interval_min;
@@ -3138,13 +3213,13 @@ void StartPawr() {
     params.min_interval = 320; // 200ms
     params.max_interval = 320;
     params.channel_map = 0x07;
-    params.tx_power = -7;
+    params.tx_power = 9;
     params.primary_advertising_phy = 1;
     params.secondary_advertising_phy = 1;
     params.scan_request_notification_enable = 0;
     sGattIfaceScan->advertiser->SetParameters(pa_handle, params, base::Bind(&SetExtendedAdvertisingParametersCb));
     sleep(1);
-
+    // set periodic advertising parameters V2
     uint8_t cmd_buffer[255];
     uint8_t len = 0;
     struct pa_parameters_t pa_parameters;
