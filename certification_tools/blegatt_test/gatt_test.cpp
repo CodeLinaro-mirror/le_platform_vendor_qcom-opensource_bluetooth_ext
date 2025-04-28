@@ -323,7 +323,7 @@ L2CAP_CONN_SETUP,
 L2CAP_CONNECTED
 };
 
-//static int L2cap_conn_state = L2CAP_NOT_CONNECTED;
+static int L2cap_conn_state = L2CAP_NOT_CONNECTED;
 static tL2CAP_CFG_INFO tl2cap_cfg_info;
 static long data_size = -1;
 static uint16_t           g_PSM           = 0;
@@ -2329,6 +2329,7 @@ static void l2test_l2c_connect_ind_cb(const RawAddress& bd_addr, uint16_t lcid, 
 
 static void l2test_l2c_connect_cfm_cb(uint16_t lcid, uint16_t result)
 {
+    printf("lcid:%d\n",lcid);
     t_le_chnl_info *le_conn_info = le_get_conn_info_by_lcid(lcid);
     if (le_conn_info&&L2C_IS_VALID_LE_PSM(le_conn_info->psm))
     {
@@ -2342,8 +2343,7 @@ static void l2test_l2c_connect_cfm_cb(uint16_t lcid, uint16_t result)
         }
         return;
     }
-#if 0
-    if (result == L2CAP_CONN_OK) {
+    if (result == L2CAP_CONN_OK && Btif_gatt_layer == FALSE) {
         L2cap_conn_state = L2CAP_CONN_SETUP;
         tL2CAP_CFG_INFO cfg;
         memcpy (&cfg ,&tl2cap_cfg_info,sizeof(tl2cap_cfg_info));
@@ -2352,7 +2352,6 @@ static void l2test_l2c_connect_cfm_cb(uint16_t lcid, uint16_t result)
         g_ConnectionState = CONNECT;
         g_lcid = lcid;
     }
-#endif
 }
 
 static void l2test_l2c_connect_pnd_cb(uint16_t lcid)
