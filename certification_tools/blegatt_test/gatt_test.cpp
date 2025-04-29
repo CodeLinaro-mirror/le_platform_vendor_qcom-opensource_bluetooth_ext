@@ -1310,6 +1310,8 @@ static void DiscoverRes_cb (uint16_t conn_id, tGATT_DISC_TYPE disc_type, tGATT_D
                 printf("DiscoverRes_cb:: DESCRIPTOR: handle = 0x%04x dclr_value.val_handle = 0x%04x\n", p_data->handle, p_data->value.dclr_value.val_handle);
             } else if (p_data->type.As16Bit() == 0x2902) {//Client Characteristic Configuration
                 printf("DiscoverRes_cb:: Client Characteristic Configuration: handle = 0x%04x uuid = 2902\n", p_data->handle);
+            } else {
+                printf("DiscoverRes_cb::uuid:0x%s handle:0x%04x\n", UUID_dump(p_data->type).c_str(), p_data->handle);
             }
         }
     }
