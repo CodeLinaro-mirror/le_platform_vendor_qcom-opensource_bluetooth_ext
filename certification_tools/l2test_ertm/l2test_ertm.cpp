@@ -67,6 +67,9 @@
 
 #define TRANSPORT_BREDR 1  //Add tranport parameter to create bond
 
+#define INVALID_CASE      0
+#define L2CAP_FOC_BV_05_C 1
+
 /************************************************************************************
 **  Local type definitions
 ************************************************************************************/
@@ -87,10 +90,12 @@ static int g_secvalue = 0;
 static bool g_ConnType = TRUE;//DUT is initiating connection
 static bool g_Fcr_Present = FALSE;
 static bool g_Sar_Present = FALSE;
+static bool g_Transfer_RR_RNR = FALSE;
 static bool strict_mode = FALSE;
 static uint8_t g_Fcr_Mode = L2CAP_FCR_BASIC_MODE;
 static uint8_t g_Ertm_AllowedMode = (L2CAP_FCR_CHAN_OPT_BASIC | L2CAP_FCR_CHAN_OPT_ERTM | L2CAP_FCR_CHAN_OPT_STREAM);
 static int g_LocalBusy = 0;
+static int g_TestCase = 0;
 
 enum {
     BT_TURNON_CMD,
@@ -116,6 +121,8 @@ static unsigned char *buf;
 static int g_imtu = 672;
 static int g_omtu = 0;
 
+/* Default fcs option */
+static uint8_t g_fcs = 0;
 
 /* Default data size */
 static long data_size = -1;
@@ -133,7 +140,6 @@ static int count = 1;
 static unsigned long g_delay = 1;
 
 static char *filename = NULL;
-
 
 /* Control channel eL2CAP default options */
 tL2CAP_FCR_OPTS ertm_fcr_opts_def = {
@@ -156,6 +162,7 @@ tL2CAP_FCR_OPTS stream_fcr_opts_def = {
 static tL2CAP_ERTM_INFO t_ertm_info = {0,0,0,0,0,0};
 
 uint8_t do_l2cap_DataWrite(char *p , uint32_t len);
+void handle_sigint(int sig);
 
 
 /************************************************************************************
@@ -221,6 +228,25 @@ void bdt_log(const char *fmt_str, ...)
     fprintf(stdout, "%s\n", buffer);
 }
 
+void bdt_data_dump(uint8_t *data, uint16_t len)
+{
+#define LINE_NUM 64
+#define BUF_LENGTH (LINE_NUM*3+10)
+        char buf[BUF_LENGTH];
+        int line_loop = 0;
+        int i =0;
+
+        do {
+                memset(buf, 0, BUF_LENGTH);
+                for (i =0; i < ((len > LINE_NUM)?LINE_NUM:len); i ++) {
+                        snprintf(&buf[i*3], BUF_LENGTH - i*3, "%02x ", data[line_loop*LINE_NUM + i]);
+                }
+                printf("%s\n", buf);
+                len = (len>LINE_NUM)?len-LINE_NUM:0;
+                line_loop += 1;
+        } while (len>0);
+}
+
 //--------------------l2test----------------------------------------------------
 btl2cap_interface_t* get_l2cap_interface(void);
 
@@ -273,7 +299,19 @@ static void l2test_l2c_config_ind_cb(uint16_t lcid, tL2CAP_CFG_INFO *p_cfg)
     if(p_cfg->mtu_present) g_omtu = p_cfg->mtu;
     else g_omtu = L2CAP_DEFAULT_MTU;
     sL2capInterface->ConfigRsp (lcid, p_cfg);
-    return;
+
+    if(g_TestCase == L2CAP_FOC_BV_05_C) {
+        tL2CAP_CFG_INFO cfg;
+        memcpy (&cfg ,&tl2cap_cfg_info,sizeof(tl2cap_cfg_info));
+        cfg.fcs_present=true;
+        cfg.fcs=0;
+        sleep(1);
+        sL2capInterface->ConfigReq (lcid, &cfg);
+        g_imtu = cfg.mtu;
+        g_ConnectionState = CONNECT;
+        g_lcid = lcid;
+        return;
+       }
 }
 
 static void l2test_l2c_config_cfm_cb(uint16_t lcid, tL2CAP_CFG_INFO *p_cfg)
@@ -320,6 +358,9 @@ static void l2test_l2c_QoSViolationInd(const RawAddress &bd_addr)
 static void l2test_l2c_data_ind_cb(uint16_t lcid, BT_HDR *p_buf)
 {
      bdt_log("l2test_l2c_data_ind_cb:: event=%u, len=%u, offset=%u, layer_specific=%u\n", p_buf->event, p_buf->len, p_buf->offset, p_buf->layer_specific);
+     bdt_log("receive data:");
+     uint8_t* pdata = p_buf->data;
+     bdt_data_dump(pdata + p_buf->offset, p_buf->len);
 }
 static void l2test_l2c_congestion_ind_cb(uint16_t lcid, bool is_congested)
 {
@@ -703,6 +744,7 @@ static bt_os_callouts_t callouts = {
 void bdt_init(void)
 {
     bdt_log("INIT BT \n");
+    signal(SIGINT, handle_sigint);
     status = (bt_status_t)sBtInterface->init(&bt_callbacks);
     if (status == BT_STATUS_SUCCESS) {
         // Get Vendor Interface
@@ -815,7 +857,7 @@ void do_l2cap_init(char *p)
     //use other param if needed
     tl2cap_cfg_info.fcr_present = g_Fcr_Present;
     tl2cap_cfg_info.fcr.mode = g_Fcr_Mode;
-    tl2cap_cfg_info.fcs = 0;
+    tl2cap_cfg_info.fcs = g_fcs;
     tl2cap_cfg_info.fcs_present = 1;
 
     tl2cap_cfg_info.fcr.tx_win_sz = 3;
@@ -1011,9 +1053,16 @@ static int Send_Data()
         do_l2cap_DataWrite(tmpBuffer, 100);
         sleep(5);
         do_l2cap_DataWrite(tmpBuffer, 100);
+        }else if(g_Transfer_RR_RNR)
+        {
+        sL2capInterface->FlowControl(g_lcid, 0);
+        sleep(1);
+        sL2capInterface->FlowControl(g_lcid, 1);
         }
-        else
+        else{
         do_l2cap_DataWrite(tmpBuffer, 5);
+        }
+
     }
     sleep(50);
     free(tmpBuf);
@@ -1069,6 +1118,25 @@ static void l2c_disconnect(char *p)
     do_l2cap_disconnect(p);
 }
 
+void handle_sigint(int sig) {
+    switch (sig)
+    {
+    case SIGINT:
+        printf("exit ...\n");
+        //bdt_cleanup();
+        if(g_ConnectionState == CONNECT) {
+            l2c_disconnect(NULL);
+            sleep(5);
+        }
+        do_disable(NULL);
+        HAL_unload();
+        exit(0);
+        break;
+    default:
+        break;
+    }
+}
+
 static void options(void)
 {
     bdt_log("Modes:\n"
@@ -1079,7 +1147,7 @@ static void options(void)
                 "\t-p bonding\n"
                 "\t-a ping\n");
     bdt_log("Options:\n"
-                "\t[-b bytes] [-i device] [-P psm] [-J cid]\n"
+                "\t[-b bytes] [-i device] [-P psm] [-J cid] [-f fcs]\n"
                 "\t[-I imtu] [-O omtu]\n"
                 "\t[-L localBusy status] 1-localbusy, 0-otherwise (default=0)\n"
                 "\t[-N num] send num frames (default = infinite)\n"
@@ -1092,7 +1160,8 @@ static void options(void)
                 "\t[-E] encryption\n"
                 "\t[-S] secure connection\n"
                 "\t[-T] timestamps\n"
-                "\t[-H mode] 1-SecConnOnlyModeTrue 0-SecConnOnlyModeFalse\n");
+                "\t[-H mode] 1-SecConnOnlyModeTrue 0-SecConnOnlyModeFalse\n"
+                "\t[-R] send RR and RNR\n");
 }
 
 static int len = 0;
@@ -1103,7 +1172,7 @@ int main(int argc, char *argv[])
     int opt, mode = RECEIVE, addr_required = 0;
     char temp[3] = {0};
 
-    while ((opt=getopt(argc,argv,"arswcpb:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:UGATMES")) != EOF) {
+    while ((opt=getopt(argc,argv,"arswcpbf:i:P:K:O:H:F:N:L:C:D:X:Q:I:W:Z:G:UATMESR")) != EOF) {
         switch(opt) {
             case 'a':
                 mode = PING;
@@ -1138,6 +1207,10 @@ int main(int argc, char *argv[])
 
             case 'b':
                 data_size = atoi(optarg);
+                break;
+
+            case 'f':
+                g_fcs = atoi(optarg);
                 break;
 
             case 'A':
@@ -1222,10 +1295,18 @@ int main(int argc, char *argv[])
                 stream_fcr_opts_def.tx_win_sz = ertm_fcr_opts_def.tx_win_sz;
                 tl2cap_cfg_info.fcr.tx_win_sz = ertm_fcr_opts_def.tx_win_sz;
                 break;
+            case 'R':
+                 g_Transfer_RR_RNR = TRUE;
+                 bdt_log("g_Transfer_RR_RNR = true \n");
+                 break;
             case 'Z':
                  g_Sar_Present = TRUE;
                  bdt_log("g_Sar_Present = true \n");
                  break;
+            case 'G':
+                g_TestCase = atoi(optarg);
+                bdt_log("g_TestCase = %d \n",g_TestCase);
+                break;
             default:
             options();
             exit(1);

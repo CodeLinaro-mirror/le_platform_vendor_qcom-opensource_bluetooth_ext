@@ -107,7 +107,7 @@ static void bdt_log(const char *fmt_str, ...);
 /************************************************************************************
 **  Functions
 ************************************************************************************/
-
+void do_sigint(int sig);
 
 /************************************************************************************
 **  Shutdown helper functions
@@ -437,11 +437,11 @@ const t_cmd console_cmd_list[] =
                       TxTest - 2 <tx_freq> <test_data_len> <payload_pattern>, \n\t \
                       End Test - 3 <no_args>", 0 },
     /* add here */
-    { "rfcomm", do_rfcomm, "rfcomm test", 0},
+    { "rfcomm", do_rfcomm, "rfcomm test <addr> <scn>", 0},
     { "server_rfcomm", do_rfcomm_server ,"rfcomm server test", 0},
     { "dis_client", do_rfcomm_disc_frm_server, "disc from Server", 0},
     { "rfc_con", do_rfc_con, "rfc_con", 0 },
-    { "rfc_msccon", do_rfc_con_for_test_msc_data, "rfc_msccon", 0 },
+    { "rfc_msccon", do_rfc_con_for_test_msc_data, "rfc_msccon <handle> <signal>", 0 },
     { "rfc_rls", do_rfc_rls, "rls",     0 },
     { "rfc_senddata", do_rfc_send_data, "rfc_senddata",     0 },
     { "role_sw", do_role_switch, "role_sw", 0},
@@ -689,14 +689,26 @@ static bt_os_callouts_t callouts = {
 };
 
 /* Rfcomm Client */
-void bdt_rfcomm(void)
+void bdt_rfcomm(char *p)
 {
+    char            buf[64];
+    bt_rfc_conn_t   conn_param;
     bdt_log("rfcomm client");
+
+    memset(buf, 0, 64);
+    /*Enter BD address */
+    get_str(&p, buf);
+    RawAddress::FromString(buf, conn_param.bdadd);
+    memset(buf ,0 , 64);
+    get_str(&p, buf);
+    conn_param.scn = atoi(buf);
+    bdt_log("SCN =%d",conn_param.scn);
+
     if (btvendorInterface)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-       sRfcInterface->rdut_rfcomm(0);
+       sRfcInterface->rdut_rfcomm(0, &conn_param);
     }
     else
     {
@@ -712,7 +724,7 @@ void bdt_rfcomm_server (void)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-        sRfcInterface->rdut_rfcomm(1);
+        sRfcInterface->rdut_rfcomm(1,nullptr);
     }
     else
     {
@@ -728,7 +740,7 @@ void bdt_rfcomm_disc_from_server(void)
         sRfcInterface = (btrfcomm_interface_t *) btvendorInterface->get_testapp_interface(TEST_APP_RFCOMM);
     if (sRfcInterface)
     {
-        sRfcInterface->rdut_rfcomm(3);
+        sRfcInterface->rdut_rfcomm(3,nullptr);
     }
     else
     {
@@ -736,9 +748,23 @@ void bdt_rfcomm_disc_from_server(void)
     }
 }
 
+void handle_sigint(int sig) {
+    switch (sig)
+    {
+    case SIGINT:
+        bdt_log(":: Bluedroid test app terminating");
+        HAL_unload();
+        exit(0);
+        break;
+    default:
+        break;
+    }
+}
+
 void bdt_init(void)
 {
     bdt_log("INIT BT ");
+    signal(SIGINT, handle_sigint);
     status = (bt_status_t)sBtInterface->init(&bt_callbacks);
     if (status == BT_STATUS_SUCCESS) {
         // Get Vendor Interface
@@ -916,7 +942,7 @@ void do_cleanup(char *p)
 /********* Rfcomm Test toot ***************/
 void do_rfcomm(char *p)
 {
-    bdt_rfcomm();
+    bdt_rfcomm(p);
 }
 
 
@@ -958,16 +984,14 @@ void do_rfc_con_for_test_msc_data(char *p)
 {
     char            buf[64];
     tRFC            conn_param;
-
     bdt_log("bdt do_rfc_con_for_test_msc_data");
     memset(buf, 0, 64);
-    /*Enter BD address */
     get_str(&p, buf);
-    RawAddress::FromString(buf, conn_param.data.conn.bdadd);
+    conn_param.data.msc.handle = atoi(buf);
     memset(buf ,0 , 64);
     get_str(&p, buf);
-    conn_param.data.conn.scn = atoi(buf);
-    bdt_log("SCN =%d",conn_param.data.conn.scn);
+    conn_param.data.msc.signal = atoi(buf);
+    bdt_log("handle:%d MSC signal:%d",conn_param.data.msc.handle, conn_param.data.msc.signal);
     /* Connection */
     conn_param.param = RFC_TEST_CLIENT_TEST_MSC_DATA;
     if (btvendorInterface)

@@ -54,7 +54,7 @@ static void bt_rfc_mmt_cback_msc_data (uint32_t code, uint16_t handle);
 static void bt_rfc_mmt_server_cback (uint32_t code, uint16_t handle);//rfc
 static int bt_rfc_data_cback (uint16_t port_handle, void *data, uint16_t len);//rfc
 static void bt_rfc_port_cback (uint32_t code, uint16_t handle);//rfc
-void rdut_rfcomm (uint8_t server);
+void rdut_rfcomm (uint8_t server,bt_rfc_conn_t* conn);
 void rdut_rfcomm_test_interface (tRFC *input);
 static uint16_t rfc_handle = 0;
 char buffer[RFC_BUFFER_SIZE];
@@ -124,19 +124,21 @@ static void bt_rfc_port_cback (uint32_t code, uint16_t handle)
     ALOGI("bt_rfc_port_cback");
 }
 
-void rdut_rfcomm (uint8_t server)
+void rdut_rfcomm (uint8_t server, bt_rfc_conn_t* conn)
 {
     uint16_t   handle;
     int status = -1;
-    RawAddress remote_bd;
-    RawAddress::FromString("00:15:83:0A:0E:1F", remote_bd);
     RawAddress any_add = RawAddress::kAny;
 
     ALOGI("dut_rfc_mode:%d",server);
     if (server == 0)
     {
-        BTM_SetSecurityLevel (TRUE, "", 0, 0, 0x03, 3/*BTM_SEC_PROTO_RFCOMM*/, 20);
-        status = RFCOMM_CreateConnection(0x0020, 20, FALSE, 256, remote_bd,
+        if(!conn) {
+            ALOGI("input parameter error\n");
+            return;
+        }
+        BTM_SetSecurityLevel (TRUE, "", 0, 0, 0x03, 3/*BTM_SEC_PROTO_RFCOMM*/, conn->scn);
+        status = RFCOMM_CreateConnection(0x0020, conn->scn, FALSE, 256, conn->bdadd,
                                             &handle, bt_rfc_mmt_cback);
         rfc_handle = handle;
     }
@@ -182,12 +184,7 @@ void rdut_rfcomm_test_interface (tRFC *input)
         break;
         case RFC_TEST_CLIENT_TEST_MSC_DATA:
         {
-            remote_bd = input->data.conn.bdadd;
-            BTM_SetSecurityLevel (TRUE, "", 0, 0, 0x03, 3/*BTM_SEC_PROTO_RFCOMM */,
-                                                                input->data.conn.scn);
-            status = RFCOMM_CreateConnection(0x0020, input->data.conn.scn, FALSE, 256,
-                                       remote_bd, &handle, bt_rfc_mmt_cback_msc_data);
-            rfc_handle = handle;
+            PORT_Control(input->data.msc.handle,input->data.msc.signal);
         }
         break;
         case RFC_TEST_FRAME_ERROR:
