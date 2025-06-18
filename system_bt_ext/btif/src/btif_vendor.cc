@@ -69,7 +69,7 @@
 #define LOG_TAG "bt_btif_vendor"
 
 #include "osi/include/properties.h"
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <hardware/hardware.h>
 #include <hardware/bluetooth.h>
 #include <hardware/bt_gatt_client.h>
@@ -86,7 +86,7 @@
 #include "profile_config.h"
 #include "btif_tws_plus.h"
 #include "btif_api.h"
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include "bta_closure_api.h"
 #include "device/include/controller.h"
 
@@ -138,13 +138,13 @@ extern const btmcap_interface_t *btif_mcap_get_interface(void);
 extern const btgatt_test_interface_t *btif_gatt_test_get_interface(void);
 extern const btsmp_interface_t *btif_smp_get_interface(void);
 extern const btgap_interface_t *btif_gap_get_interface(void);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 extern const BleTestScannerInterface* get_ble_test_scanner_instance(void);
 extern const btgatt_client_interface_t *bt_btif_vendor_gattc_get_interface(void);
 #endif
 #endif
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 extern void BTM_StartEncryption(RawAddress address, uint8_t *rand, uint16_t ediv, const BT_OCTET16& ltk, tBTM_SEC_CBACK* p_callback);
 extern void BTM_Deregister_Bgdev_List(tGATT_IF gatt_if);
 vendor_acl_state_changed_callback vendor_acl_state_changed_cb = NULL;
@@ -292,7 +292,7 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
     return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback);
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 static hci_event_cb vsc_cb;
 static bool hci_event_cb_needed;
 
@@ -435,7 +435,7 @@ bt_status_t voip_network_type_wifi(bthf_voip_state_t isVoipStarted,
     return BT_STATUS_SUCCESS;
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 int register_vendor_acl_callback(vendor_acl_state_changed_callback cb)
 {
     vendor_acl_state_changed_cb = cb;
@@ -538,7 +538,7 @@ static const void* get_testapp_interface(int test_app_profile)
         return NULL;
     }
     ALOGI("get_testapp_interface %d", test_app_profile);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     BTIF_TRACE_EVENT("%s %d", __FUNCTION__, test_app_profile);
 #endif
     switch(test_app_profile) {
@@ -554,7 +554,7 @@ static const void* get_testapp_interface(int test_app_profile)
            return btif_smp_get_interface();
         case TEST_APP_GAP:
            return btif_gap_get_interface();
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
         case TEST_APP_SCANNER:
            return get_ble_test_scanner_instance();
         case TEST_APP_GATTC:
@@ -589,7 +589,7 @@ static const btvendor_interface_t btvendorInterface = {
     sizeof(btvendorInterface),
     init,
     hci_cmd_send,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     hci_cmd_send_with_cb,
     hci_cmd_send_with_status_cb,
     hci_clear_white_list,
