@@ -34,7 +34,7 @@
 
 #ifndef INCLUDE_VENDOR_AP_H
 #define INCLUDE_VENDOR_AP_H
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include "raw_address.h"
 #include <bluetooth/uuid.h>
 #include <hardware/bluetooth.h>
@@ -52,7 +52,7 @@
 #define VENDOR_AP_IS_SUPPORTED TRUE
 #endif
 
-#define VENDOR_AP_MODULE_ID          "qeslap"
+#define VENDOR_AP_MODULE_ID          "vendorap"
 #define CERT_CMD_ARG_SIZE            200
 #define CERT_CMD_PARAMETER_COUNT_MIN 1 //cert cmd self
 

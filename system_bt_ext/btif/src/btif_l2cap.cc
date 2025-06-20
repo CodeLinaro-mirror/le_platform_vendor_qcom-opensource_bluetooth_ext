@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <base/bind.h>
 #endif
 #include <hardware/bluetooth.h>
@@ -41,7 +41,7 @@
 #define LOG_NDDEBUG 0
 #define LOG_TAG "bluedroid"
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include "bta_closure_api.h"
 #endif
 #include "btif_api.h"
@@ -100,7 +100,7 @@ static bool L2cap_LE_ConnectRsp (RawAddress p_bd_addr, uint8_t id, uint16_t lcid
 //static bool L2cap_LE_ConnectRsp (RawAddress p_bd_addr, uint8_t id, uint16_t lcid, tL2CAP_LE_CFG_INFO *p_cfg);
 static bool L2cap_LE_FlowControl (uint16_t lcid, uint16_t credits);
 static void L2cap_LE_freebuf(BT_HDR *p_buf);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
 static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len);
 static bt_status_t L2cap_LE_Register_Bta (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
@@ -154,7 +154,7 @@ static const btl2cap_interface_t btl2capInterface = {
     L2cap_LE_ConnectRsp,
     L2cap_LE_FlowControl,
     L2cap_LE_freebuf,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     L2cap_GetPeerConfig,
     L2cap_DataWrite_Btu,
     L2cap_LE_Register_Bta,
@@ -304,7 +304,7 @@ static void L2cap_LE_freebuf (BT_HDR *p_buf)
      osi_free(p_buf);
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 static bool L2cap_GetPeerConfig (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg)
 {
     BTIF_TRACE_DEBUG("L2cap_LE_GetPeerConfig:: Invoked");
@@ -321,7 +321,7 @@ static void L2cap_DataWrite_Help (uint16_t cid, std::vector<char> data)
     }
 }
 
-static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len) // only used for first l2cap write from ESL AP
+static void L2cap_DataWrite_Btu (uint16_t cid, char *p_data, uint32_t len) // only used for first l2cap write from VENDOR APP
 {
     std::vector<char> l2cap_data(p_data, p_data+len);
     do_in_bta_thread(FROM_HERE, base::Bind(&L2cap_DataWrite_Help, cid, std::move(l2cap_data)));

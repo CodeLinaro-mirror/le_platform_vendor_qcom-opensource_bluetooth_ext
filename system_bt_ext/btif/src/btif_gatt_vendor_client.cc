@@ -178,7 +178,7 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
       LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
       tBTM_RAW_STATUS  raw_status_params;
       /* Pass paramters to the callback function */
@@ -378,7 +378,7 @@ bt_status_t btif_gattc_open(int client_if, const RawAddress& bd_addr,
                                initiating_phys));
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 void btif_gattc_open_impl_v2(int client_if, uint8_t advertising_handle, uint8_t subevent,
                           RawAddress address, bool is_direct,
                           int transport_p, bool opportunistic,
@@ -813,7 +813,7 @@ const btgatt_client_interface_t btgattVendorClientInterface = {
     btif_gattc_read_phy,
     NULL,
     btif_gattc_get_gatt_db,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     btif_gattc_open_v2,
     btif_gattc_add_fastconnection_device,
     btif_gattc_remove_fastconnection_device,
