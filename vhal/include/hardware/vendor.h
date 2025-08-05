@@ -221,6 +221,9 @@ typedef struct {
     /** swith role of dut with a given remote device */
     int (*switch_role_req)(const RawAddress *bd_addr, uint8_t new_role);
 
+    /** Get connection handle of dut with a given remote device */
+    uint16_t (*get_conn_handle)(const RawAddress* bd_addr);
+
 } btvendor_interface_t;
 
 __END_DECLS

@@ -387,6 +387,16 @@ static void get_role_req(const RawAddress* bd_addr)
     return btif_dm_get_role_req(bd_addr);
 }
 
+static uint16_t get_connection_handle(const RawAddress* bd_addr)
+{
+    /* sanity check */
+    if (vendor_interface_ready() == FALSE)
+       return 0;
+
+    return btif_dm_get_conn_handle(bd_addr);
+}
+
+
 static int switch_role_req(const RawAddress *bd_addr, uint8_t new_role)
 {
     /* sanity check */
@@ -413,6 +423,7 @@ static const btvendor_interface_t btvendorInterface = {
     voip_network_type_wifi,
     get_role_req,
     switch_role_req,
+    get_connection_handle,
 };
 
 /*******************************************************************************
