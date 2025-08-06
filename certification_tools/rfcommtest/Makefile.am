@@ -13,17 +13,17 @@ AM_CFLAGS = -Wall \
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS += -I${BT_SOURCE}/stack/system/bt/stack/include \
-    -I${BT_SOURCE}/stack/system/bt/include \
-    -I${BT_SOURCE}/stack/system/bt/internal_include \
-    -I${BT_SOURCE}/stack/system/bt/stack/l2cap \
-    -I${BT_SOURCE}/stack/system/bt/utils/include \
-    -I${BT_SOURCE}/stack/system/bt \
-    -I${BT_SOURCE}/stack/system/bt/btif/include \
-    -I${BT_SOURCE}/stack/system/bt/bta/include \
-    -I${BT_SOURCE}/stack/bluetooth_ext/system_bt_ext/include \
-    -I${BT_SOURCE}/stack/bluetooth_ext/vhal/include \
-    -I${BT_SOURCE}/stack/system/bt/types \
+AM_CPPFLAGS += -I${STAGING_INCDIR}/bluetooth/stack/include \
+    -I${STAGING_INCDIR}/bluetooth/include \
+    -I${STAGING_INCDIR}/bluetooth/internal_include \
+    -I${STAGING_INCDIR}/bluetooth/stack/l2cap \
+    -I${STAGING_INCDIR}/bluetooth/utils/include \
+    -I${STAGING_INCDIR}/bluetooth \
+    -I${STAGING_INCDIR}/bluetooth/btif/include \
+    -I${STAGING_INCDIR}/bluetooth/bta/include \
+    -I${STAGING_INCDIR}/bluetooth/types \
+    -I${BT_SOURCE}/system_bt_ext/include \
+    -I${BT_SOURCE}/vhal/include \
     -I$(bdroid_C_INCLUDES)
 
 
