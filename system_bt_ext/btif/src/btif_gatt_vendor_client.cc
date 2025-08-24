@@ -178,7 +178,7 @@ void btif_gattc_upstreams_evt(uint16_t event, char* p_param) {
       break;
 
     case BTA_GATTC_CANCEL_OPEN_EVT:
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
       LOG_DEBUG(LOG_TAG, "BTA_GATTC_CANCEL_OPEN_EVT: status = %d", p_data->status);
       tBTM_RAW_STATUS  raw_status_params;
       /* Pass paramters to the callback function */
@@ -378,7 +378,7 @@ bt_status_t btif_gattc_open(int client_if, const RawAddress& bd_addr,
                                initiating_phys));
 }
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 void btif_gattc_open_impl_v2(int client_if, uint8_t advertising_handle, uint8_t subevent,
                           RawAddress address, bool is_direct,
                           int transport_p, bool opportunistic,
@@ -450,31 +450,31 @@ bt_status_t btif_gattc_open_v2(int client_if, uint8_t advertising_handle, uint8_
                                transport, opportunistic, initiating_phys));
 }
 
-void btif_gattc_add_pd(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
- // add device to pending list!
-  BTA_GATTC_Add_Pd(client_if, bd_addr, transport, advertising_handle, subevent);
+void btif_gattc_add_fc(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+ // add device for fast connection!
+  BTA_GATTC_Add_Fc(client_if, bd_addr, transport, advertising_handle, subevent);
 }
 
-void btif_gattc_rm_pd(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
-  // remove device from pending list!
-  BTA_GATTC_Remove_Pd(client_if, bd_addr, transport, advertising_handle, subevent);
+void btif_gattc_rm_fc(int client_if, RawAddress bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  // remove device for fast connection!
+  BTA_GATTC_Remove_Fc(client_if, bd_addr, transport, advertising_handle, subevent);
 }
 
-void btif_gattc_cl_pd(int client_if, int transport, uint8_t advertising_handle) {
-  // clear device from pending list!
-  BTA_GATTC_Clear_Pd(client_if, transport, advertising_handle);
+void btif_gattc_cl_fc(int client_if, int transport, uint8_t advertising_handle) {
+  // clear device for fast connection!
+  BTA_GATTC_Clear_Fc(client_if, transport, advertising_handle);
 }
 
-bt_status_t btif_gattc_add_pending_list(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
-  return do_in_jni_thread(Bind(&btif_gattc_add_pd, client_if, bd_addr, transport, advertising_handle, subevent));
+bt_status_t btif_gattc_add_fastconnection_device(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  return do_in_jni_thread(Bind(&btif_gattc_add_fc, client_if, bd_addr, transport, advertising_handle, subevent));
 }
 
-bt_status_t btif_gattc_remove_pending_list(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
-  return do_in_jni_thread(Bind(&btif_gattc_rm_pd, client_if, bd_addr, transport, advertising_handle, subevent));
+bt_status_t btif_gattc_remove_fastconnection_device(int client_if, const RawAddress& bd_addr, int transport, uint8_t advertising_handle, uint8_t subevent) {
+  return do_in_jni_thread(Bind(&btif_gattc_rm_fc, client_if, bd_addr, transport, advertising_handle, subevent));
 }
 
-bt_status_t btif_gattc_clear_pending_list(int client_if, int transport, uint8_t advertising_handle) {
-  return do_in_jni_thread(Bind(&btif_gattc_cl_pd, client_if, transport, advertising_handle));
+bt_status_t btif_gattc_clear_fastconnection_device(int client_if, int transport, uint8_t advertising_handle) {
+  return do_in_jni_thread(Bind(&btif_gattc_cl_fc, client_if, transport, advertising_handle));
 }
 
 void btif_gattc_add_wl(int client_if, RawAddress bd_addr, int transport) {
@@ -813,11 +813,11 @@ const btgatt_client_interface_t btgattVendorClientInterface = {
     btif_gattc_read_phy,
     NULL,
     btif_gattc_get_gatt_db,
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     btif_gattc_open_v2,
-    btif_gattc_add_pending_list,
-    btif_gattc_remove_pending_list,
-    btif_gattc_clear_pending_list,
+    btif_gattc_add_fastconnection_device,
+    btif_gattc_remove_fastconnection_device,
+    btif_gattc_clear_fastconnection_device,
     btif_gattc_add_white_list,
     btif_gattc_remove_white_list,
     btif_gattc_close_v2

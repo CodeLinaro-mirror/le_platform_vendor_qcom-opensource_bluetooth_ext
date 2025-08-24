@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <fcntl.h>
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <base/bind.h>
 #endif
 #include <sys/prctl.h>
@@ -88,7 +88,7 @@ typedef enum {
     TEST_APP_MCAP,
     TEST_APP_GATT,
     TEST_APP_GAP,
-#ifndef SUPPORT_ESL_AP
+#ifndef SUPPORT_VENDOR_AP
     TEST_APP_SMP
 #else
     TEST_APP_SMP,
@@ -97,7 +97,7 @@ typedef enum {
 #endif
 } test_app_profile;
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 typedef void (*register_client_callback)(int status, int client_if, const bluetooth::Uuid& app_uuid);
 typedef void (*get_gatt_db_callback)(int conn_id, const btgatt_db_element_t* db, int count);
 #endif
@@ -152,7 +152,7 @@ typedef struct {
                              uint16_t status, tL2CAP_LE_CFG_INFO *p_cfg);
     bool        (*LeFlowControl) (uint16_t lcid, uint16_t credits);
     void        (*LeFreeBuf)(BT_HDR *p_buf);
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     bool        (*GetPeerConfig) (uint16_t lcid, tL2CAP_LE_CFG_INFO* peer_cfg);
     void        (*DataWriteBtu) (uint16_t lcid, char *p_data, uint32_t len);
     bt_status_t (*RegisterLePsmBta) (uint16_t le_psm, bool ConnType, uint16_t SecLevel,
@@ -287,7 +287,7 @@ typedef struct {
     void  (*cleanup)( void );
 } btrfcomm_interface_t;
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 class BleTestScannerInterface {
  public:
   virtual ~BleTestScannerInterface() = default;

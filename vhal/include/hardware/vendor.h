@@ -57,7 +57,7 @@
 #define ANDROID_INCLUDE_BT_VENDOR_H
 
 #include <hardware/bluetooth.h>
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 #include <vector>
 #include <base/bind.h>
 #endif
@@ -98,7 +98,7 @@ typedef enum {
     BT_VENDOR_PROPERTY_TWS_PLUS_AUTO_CONNECT,
 } bt_vendor_property_type_t;
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 typedef uint8_t tBTM_STATUS;
 typedef uint8_t tBT_TRANSPORT;
 using hci_event_cb = base::Callback<void(uint8_t * buf, uint8_t /* len*/)>;
@@ -141,7 +141,7 @@ typedef void (* remote_dev_prop_callback)(bt_status_t status,
                           RawAddress *bd_addr, int num_properties,
                           bt_vendor_property_t *properties);
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
 /** Bluetooth ACL connection state changed callback */
 typedef bool (*vendor_acl_state_changed_callback)(bt_status_t status, RawAddress *remote_bd_addr,
                           bt_acl_state_t state, uint16_t conn_handle);
@@ -229,7 +229,7 @@ typedef struct {
     /* Send any test HCI command to the controller. */
     int (*hci_cmd_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
 
-#ifdef SUPPORT_ESL_AP
+#ifdef SUPPORT_VENDOR_AP
     int (*hci_cmd_send_with_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb);
 
     int (*hci_cmd_send_with_status_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_status_cb cb);
