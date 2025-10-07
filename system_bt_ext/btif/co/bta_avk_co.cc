@@ -300,14 +300,14 @@ uint8_t bta_avk_get_current_vendor_codec()
 {
     uint8_t codec_type = 255;
 #if defined(APTX_CLASSIC_DECODER_INCLUDED) && (APTX_CLASSIC_DECODER_INCLUDED == TRUE)
-    if ((((tA2D_APTX_CIE*)(bta_avk_co_cb.codec_cfg.info + 3))->vendorId == A2D_APTX_VENDOR_ID) && 
+    if ((((tA2D_APTX_CIE*)(bta_avk_co_cb.codec_cfg.info + 3))->vendorId == A2D_APTX_VENDOR_ID) &&
      (((tA2D_APTX_CIE*)(bta_avk_co_cb.codec_cfg.info + 3))->codecId == A2D_APTX_CODEC_ID_BLUETOOTH)) {
         APPL_TRACE_ERROR("A2DP_SINK_AUDIO_CODEC_APTX");
         return 8;
     }
 #endif
 #if defined(APTX_AD_DECODER_INCLUDED) && (APTX_AD_DECODER_INCLUDED == TRUE)
-    if ((((tA2DP_AVK_APTX_AD_CIE*)(bta_avk_co_cb.codec_cfg.info + 3))->vendorId == 
+    if ((((tA2DP_AVK_APTX_AD_CIE*)(bta_avk_co_cb.codec_cfg.info + 3))->vendorId ==
       A2DP_AVK_APTX_AD_VENDOR_ID) && (((tA2DP_AVK_APTX_AD_CIE*)
       (bta_avk_co_cb.codec_cfg.info + 3))->codecId == A2DP_AVK_APTX_AD_CODEC_ID_BLUETOOTH)) {
         APPL_TRACE_ERROR("A2DP_SINK_AUDIO_CODEC_APTX_AD");
@@ -736,7 +736,7 @@ void bta_avk_build_sbc_src_cfg (uint8_t *p_pref_cfg, uint8_t *p_src_cap, uint8_t
 void bta_avk_build_aac_src_cfg (uint8_t *p_pref_cfg, uint8_t *p_src_cap, uint8_t index)
 {
     tA2D_AAC_CIE    src_cap;
-    tA2D_AAC_CIE    pref_cap;
+    tA2D_AAC_CIE    pref_cap = {};
     uint8_t           status = 0;
     acquire_codec_mutex_lock();
     tA2D_AAC_CIE    *local_cap = &p_bta_avk_codec_pri_list[index].codec_cap.aac_caps;

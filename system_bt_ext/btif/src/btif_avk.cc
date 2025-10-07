@@ -2841,10 +2841,10 @@ static void update_flushing_device_vendor(bt_bdaddr_t *bd_addr)
         p_data_q_buf = (tBT_SINK_DATA_HDR *)list_node(node);
         node = list_next(node);
         bda = p_data_q_buf->bd_addr;
-        BTIF_TRACE_DEBUG(" %s flushing_bda %s p_data_q_buf->bd_addr %s", __FUNCTION__, bd_addr->ToString().c_str(), bda.ToString().c_str() );
-
         if ((bd_addr != nullptr) && (*bd_addr == p_data_q_buf->bd_addr))
         {
+            BTIF_TRACE_DEBUG(" %s flushing_bda %s p_data_q_buf->bd_addr %s", __FUNCTION__,
+                bd_addr->ToString().c_str(), bda.ToString().c_str() );
             BTIF_TRACE_DEBUG("%s flushing this dev packets, dequeue this packet",
                 __FUNCTION__);
             fixed_queue_try_remove_from_queue(RxDataQ,(void *)p_data_q_buf);
@@ -2924,7 +2924,7 @@ static uint32_t get_a2dp_sink_streaming_data_vendor (uint16_t codec_type, uint8_
         if (p_data_q_buf == NULL)
             break;
         bda = p_data_q_buf->bd_addr;
-        BTIF_TRACE_DEBUG(" %s bd_addr %s p_data_q_buf->bd_addr %s", __FUNCTION__, streaming_bda.ToString().c_str(), bda.ToString().c_str()); 
+        BTIF_TRACE_DEBUG(" %s bd_addr %s p_data_q_buf->bd_addr %s", __FUNCTION__, streaming_bda.ToString().c_str(), bda.ToString().c_str());
 
         if ((!streaming_bda.IsEmpty()) && (streaming_bda != p_data_q_buf->bd_addr))
         {
