@@ -463,13 +463,13 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
 
     std::vector<btgatt_db_element_t> service1;
     //1st service
-    btgatt_db_element_t svc1;
+    btgatt_db_element_t svc1 = {};
     svc1.uuid = Uuid::FromString(IMMEDIATE_ALERT_UUID, &is_valid);
     svc1.type = BTGATT_DB_PRIMARY_SERVICE;
     service1.push_back(svc1);
 
     //1st char
-    btgatt_db_element_t char1;
+    btgatt_db_element_t char1 = {};
     char1.uuid = Uuid::FromString(ALERT_LEVEL_UUID1, &is_valid);
     char1.type = BTGATT_DB_CHARACTERISTIC;
     char1.properties = 58;
@@ -478,7 +478,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char1);
 
     //1st desc
-    btgatt_db_element_t desc1;
+    btgatt_db_element_t desc1 = {};
     desc1.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc1.type = BTGATT_DB_DESCRIPTOR;
     desc1.permissions = 17;
@@ -486,7 +486,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc1);
 
     //2nd char
-    btgatt_db_element_t char2;
+    btgatt_db_element_t char2 = {};
     char2.uuid = Uuid::FromString(ALERT_LEVEL_UUID2, &is_valid);
     char2.type = BTGATT_DB_CHARACTERISTIC;
     char2.properties = 58;
@@ -495,7 +495,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char2);
 
     //2nd desc
-    btgatt_db_element_t desc2;
+    btgatt_db_element_t desc2 = {};
     desc2.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc2.type = BTGATT_DB_DESCRIPTOR;
     desc2.permissions = 34;
@@ -504,7 +504,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
 
 
     //3rd char
-    btgatt_db_element_t char3;
+    btgatt_db_element_t char3 = {};
     char3.uuid = Uuid::FromString(ALERT_LEVEL_UUID3, &is_valid);
     char3.type = BTGATT_DB_CHARACTERISTIC;
     char3.properties = 58;
@@ -513,7 +513,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char3);
 
     //3rd desc
-    btgatt_db_element_t desc3;
+    btgatt_db_element_t desc3 = {};
     desc3.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc3.type = BTGATT_DB_DESCRIPTOR;
     desc3.permissions = 68;
@@ -522,7 +522,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
 
 
     //4th char
-    btgatt_db_element_t char4;
+    btgatt_db_element_t char4 = {};
     char4.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_UUID1, &is_valid);
     char4.type = BTGATT_DB_CHARACTERISTIC;
     char4.properties = 58;
@@ -531,7 +531,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char4);
 
     //4th desc
-    btgatt_db_element_t desc4;
+    btgatt_db_element_t desc4 = {};
     desc4.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_DESC_UUID1, &is_valid);
     desc4.type = BTGATT_DB_DESCRIPTOR;
     desc4.permissions = 34;
@@ -540,7 +540,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
 
 
     //5th char
-    btgatt_db_element_t char5;
+    btgatt_db_element_t char5 = {};
     char5.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_UUID2, &is_valid);
     char5.type = BTGATT_DB_CHARACTERISTIC;
     char5.properties = 58;
@@ -549,7 +549,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char5);
 
     //5th desc
-    btgatt_db_element_t desc5;
+    btgatt_db_element_t desc5 = {};
     desc5.uuid = Uuid::FromString(AUTHENTICATION_LEVEL_DESC_UUID2, &is_valid);
     desc5.type = BTGATT_DB_DESCRIPTOR;
     desc5.permissions = 68;
@@ -557,7 +557,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc5);
 
     //6th char
-    btgatt_db_element_t char6;
+    btgatt_db_element_t char6 = {};
     char6.uuid = Uuid::FromString(ALERT_LEVEL_UUID4, &is_valid);
     char6.type = BTGATT_DB_CHARACTERISTIC;
     char6.properties = 4;
@@ -566,7 +566,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char6);
 
     //6th desc
-    btgatt_db_element_t desc6;
+    btgatt_db_element_t desc6 = {};
     desc6.uuid = Uuid::FromString(DISC_LEVEL_UUID1, &is_valid);
     desc6.type = BTGATT_DB_DESCRIPTOR;
     desc6.permissions = 16;
@@ -574,7 +574,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc6);
 
     //7th char
-    btgatt_db_element_t char7;
+    btgatt_db_element_t char7 = {};
     char7.uuid = Uuid::FromString(ALERT_LEVEL_UUID5, &is_valid);
     char7.type = BTGATT_DB_CHARACTERISTIC;
     char7.properties = 114;
@@ -583,7 +583,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char7);
 
     //7th desc
-    btgatt_db_element_t desc7;
+    btgatt_db_element_t desc7 = {};
     desc7.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc7.type = BTGATT_DB_DESCRIPTOR;
     desc7.permissions = 129;
@@ -591,7 +591,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc7);
 
     //8th char
-    btgatt_db_element_t char8;
+    btgatt_db_element_t char8 = {};
     char8.uuid = Uuid::FromString(ALERT_LEVEL_UUID6, &is_valid);
     char8.type = BTGATT_DB_CHARACTERISTIC;
     char8.properties = 66;
@@ -600,7 +600,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char8);
 
     //8th desc
-    btgatt_db_element_t desc8;
+    btgatt_db_element_t desc8 = {};
     desc8.uuid = Uuid::FromString(DISC_LEVEL_UUID2, &is_valid);
     desc8.type = BTGATT_DB_DESCRIPTOR;
     desc8.permissions = 129;
@@ -608,7 +608,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc8);
 
     //9th char
-    btgatt_db_element_t char9;
+    btgatt_db_element_t char9 = {};
     char9.uuid = Uuid::FromString(ALERT_LEVEL_WRITENORESPONSEWITHREADABLE2, &is_valid);
     char9.type = BTGATT_DB_CHARACTERISTIC;
     char9.properties = 6;
@@ -617,7 +617,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char9);
 
     //9th desc
-    btgatt_db_element_t desc9;
+    btgatt_db_element_t desc9 = {};
     desc9.uuid = Uuid::FromString(DISC_LEVEL_UUID7, &is_valid);
     desc9.type = BTGATT_DB_DESCRIPTOR;
     desc9.permissions = 17;
@@ -625,7 +625,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc9);
 
     //10th char
-    btgatt_db_element_t char10;
+    btgatt_db_element_t char10 = {};
     char10.uuid = Uuid::FromString(ALERT_LEVEL_UUID18, &is_valid);
     char10.type = BTGATT_DB_CHARACTERISTIC;
     char10.properties = 58;
@@ -634,7 +634,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char10);
 
     //10th desc
-    btgatt_db_element_t desc10;
+    btgatt_db_element_t desc10 = {};
     desc10.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc10.type = BTGATT_DB_DESCRIPTOR;
     desc10.permissions = 17;
@@ -642,7 +642,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(desc10);
 
     //11th char
-    btgatt_db_element_t char11;
+    btgatt_db_element_t char11 = {};
     char11.uuid = Uuid::FromString(ALERT_LEVEL_UUID19, &is_valid);
     char11.type = BTGATT_DB_CHARACTERISTIC;
     char11.properties = 58;
@@ -651,7 +651,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service1.push_back(char11);
 
     //11th desc
-    btgatt_db_element_t desc11;
+    btgatt_db_element_t desc11 = {};
     desc11.uuid = Uuid::FromString(ClientCharConfigUUID, &is_valid);
     desc11.type = BTGATT_DB_DESCRIPTOR;
     desc11.permissions = 17;
@@ -665,7 +665,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //Second Service - longvalue service
     std::vector<btgatt_db_element_t> service2;
     //2nd service
-    btgatt_db_element_t svc2;
+    btgatt_db_element_t svc2 = {};
     svc2.uuid = Uuid::FromString(IMMEDIATE_ALERT_UUID1, &is_valid);
     svc2.type = BTGATT_DB_PRIMARY_SERVICE;
     service2.push_back(svc2);
@@ -820,7 +820,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //3rd service
     std::vector<btgatt_db_element_t> service3;
 
-    btgatt_db_element_t svc3;
+    btgatt_db_element_t svc3 = {};
     svc3.uuid = Uuid::FromString(IMMEDIATE_ALERT_UUID2, &is_valid);
     svc3.type = BTGATT_DB_PRIMARY_SERVICE;
     service3.push_back(svc3);
@@ -866,7 +866,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //4th service with no value set
     std::vector<btgatt_db_element_t> service4;
 
-    btgatt_db_element_t svc4;
+    btgatt_db_element_t svc4 = {};
     svc4.uuid = Uuid::FromString(IMMEDIATE_ALERT_UUID3, &is_valid);
     svc4.type = BTGATT_DB_PRIMARY_SERVICE;
     service4.push_back(svc4);
@@ -887,7 +887,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     //5th service will all kinds of descriptors
     std::vector<btgatt_db_element_t> service5;
 
-    btgatt_db_element_t svc5;
+    btgatt_db_element_t svc5 = {};
     svc5.uuid = Uuid::FromString(IMMEDIATE_ALERT_UUID6, &is_valid);
     svc5.type = BTGATT_DB_PRIMARY_SERVICE;
     service5.push_back(svc5);
@@ -977,7 +977,7 @@ static void register_server_cb(int status, int server_if, const Uuid& app_uuid)
     service5.push_back(desc11);
 
     //12th desc
-    btgatt_db_element_t desc12;
+    btgatt_db_element_t desc12 = {};
     desc12.uuid = Uuid::FromString(CharacteristicAggregateFormat, &is_valid);
     desc12.type = BTGATT_DB_DESCRIPTOR;
     desc12.permissions = 17;
@@ -1008,7 +1008,7 @@ static void request_read_cb(int conn_id, int trans_id, const RawAddress& bda,
     btgatt_response_t  gatt_resp;
     int status = BT_STATUS_SUCCESS;
     std::vector<uint8_t> cccd_val;
-    uint8_t val[2];
+    uint8_t val[2] = {};
     gatt_resp.handle = attr_handle;
     gatt_resp.attr_value.handle = attr_handle;
     gatt_resp.attr_value.offset = offset;
@@ -1068,7 +1068,7 @@ static void request_write_cb(int conn_id, int trans_id, const RawAddress& bda,
     printf("%s:: conn_id=%d, trans_id=%d, attr_handle=%d \n", __FUNCTION__, conn_id, trans_id, attr_handle);
     bt_status_t        Ret;
     int status = BT_STATUS_SUCCESS;
-    uint8_t cccd_val[2];
+    uint8_t cccd_val[2] = {};
     btgatt_response_t  gatt_resp;
     gatt_resp.handle = attr_handle;
     gatt_resp.attr_value.handle = attr_handle;
@@ -1755,8 +1755,8 @@ static int create_cmdjob(char *cmd)
     char *job_cmd;
 
     job_cmd = (char*)calloc(1, strlen(cmd)+1); /* freed in job handler */
-    memset(job_cmd,0,strlen(cmd)+1);
     if (job_cmd) {
+       memset(job_cmd,0,strlen(cmd)+1);
        strlcpy(job_cmd, cmd,(strlen(cmd) +1));
        if (pthread_create(&thread_id, NULL, cmdjob_handler, (void *)job_cmd) != 0)
       /*if (pthread_create(&thread_id, NULL,
@@ -3024,13 +3024,13 @@ void do_le_server_add_service(char *p)
 
     std::vector<btgatt_db_element_t> service;
     //1st service
-    btgatt_db_element_t svc1;
+    btgatt_db_element_t svc1 = {};
     svc1.uuid = Uuid::FromString("00001800-0000-1000-8000-00805f9b34fb", &is_valid);//00001800-0000-1000-8000-00805f9b34fb
     svc1.type = BTGATT_DB_PRIMARY_SERVICE;
     service.push_back(svc1);
 
     //2nd service
-    btgatt_db_element_t svc2;
+    btgatt_db_element_t svc2 = {};
     svc2.uuid = Uuid::FromString("00001801-0000-1000-8000-00805f9b34fb", &is_valid);//00001801-0000-1000-8000-00805f9b34fb
     svc2.type = BTGATT_DB_PRIMARY_SERVICE;
     service.push_back(svc2);
