@@ -46,7 +46,7 @@
 #if defined(OS_GENERIC)
 static const char *INTEROP_FILE_PATH = "interop_database.conf";
 #else  // !defined(OS_GENERIC)
-static const char *INTEROP_DYNAMIC_FILE_PATH = "/etc/bluetooth/interop_database_dynamic.conf";
+static const char *INTEROP_DYNAMIC_FILE_PATH = "/data/misc/bluetooth/interop_database_dynamic.conf";
 static const char *INTEROP_STATIC_FILE_PATH = "/etc/bluetooth/interop_database.conf";
 #endif  // defined(OS_GENERIC)
 
