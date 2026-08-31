@@ -32,9 +32,9 @@ cpp_sources = rfcommtest.cpp
 
 
 if USE_GST
-requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd
+requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd -Wl,--no-as-needed,-lcutils,--as-needed
 else
-requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd
+requiredlibs = -lpthread -lm -ldl -lrt -lbtvendorhal -lbttypes -lchrome -lbsd -Wl,--no-as-needed,-lcutils,--as-needed
 endif
 
 

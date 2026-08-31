@@ -57,8 +57,12 @@
 #define ANDROID_INCLUDE_BT_VENDOR_H
 
 #include <hardware/bluetooth.h>
+#include <base/bind.h>
 
 __BEGIN_DECLS
+
+/* Callback used by hci_cmd_send_with_cb to deliver the HCI event back. */
+using hci_event_cb = base::Callback<void(uint8_t* buf, uint8_t /* len */)>;
 
 #define BT_PROFILE_VENDOR_ID "vendor"
 #define BT_PROFILE_WIPOWER_VENDOR_ID "wipower"
@@ -193,6 +197,9 @@ typedef struct {
 
     /* Send any test HCI command to the controller. */
     int (*hci_cmd_send)(uint16_t opcode, uint8_t *buf, uint8_t len);
+
+    /* Send a test HCI command and deliver the controller event via callback. */
+    int (*hci_cmd_send_with_cb)(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb);
 
     /** test interface. */
     const void* (*get_testapp_interface)(int);

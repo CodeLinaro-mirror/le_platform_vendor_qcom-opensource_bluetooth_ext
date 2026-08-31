@@ -65,6 +65,8 @@
 #include <hardware/vendor.h>
 #include <stdlib.h>
 #include <string.h>
+#include <base/bind.h>
+#include <base/location.h>
 
 #define LOG_TAG "bt_btif_vendor"
 
@@ -269,6 +271,36 @@ int hci_cmd_send(uint16_t opcode, uint8_t* buf, uint8_t len)
     return BTA_DmHciRawCommand(opcode, len, buf, btif_vendor_hci_event_callback);
 }
 
+static hci_event_cb vsc_cb;
+static bool hci_event_cb_needed;
+
+using hci_cmd_cb = base::Callback<void(uint8_t* /* return_parameters */, uint16_t /* return_parameters_length */)>;
+extern void btu_hcif_send_cmd_with_cb(const tracked_objects::Location& posted_from,
+                                      uint16_t opcode, uint8_t* params, uint8_t params_len, hci_cmd_cb cb);
+
+static void btif_vendor_hci_event_callback_entry(unsigned char* param, unsigned short param_len)
+{
+  BTIF_TRACE_DEBUG("%s, callback:%d, %d", __FUNCTION__, hci_event_cb_needed, vsc_cb.is_null());
+  if((param != NULL) && hci_event_cb_needed) {
+    vsc_cb.Run(param, param_len);
+  }
+}
+
+int hci_cmd_send_with_cb(uint16_t opcode, uint8_t* buf, uint8_t len, hci_event_cb cb)
+{
+    BTIF_TRACE_DEBUG("hci_cmd_send_with_cb: opcode=%d", opcode);
+    if (opcode != 0) {
+        vsc_cb = cb;
+        hci_event_cb_needed = true;
+        btu_hcif_send_cmd_with_cb(FROM_HERE, opcode, buf, len, base::Bind(&btif_vendor_hci_event_callback_entry));
+        return HCI_SUCCESS;
+    }
+    else {
+        hci_event_cb_needed = false;
+        return HCI_SUCCESS;
+    }
+}
+
 static void set_wifi_state(bool status)
 {
     LOG_INFO(LOG_TAG,"setWifiState :%d", status);
@@ -410,6 +442,7 @@ static const btvendor_interface_t btvendorInterface = {
     sizeof(btvendorInterface),
     init,
     hci_cmd_send,
+    hci_cmd_send_with_cb,
 #if TEST_APP_INTERFACE == TRUE
     get_testapp_interface,
 #else
